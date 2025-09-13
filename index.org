@@ -120,3 +120,116 @@ The articles in this series document the procedures required to build a system t
 * Reference
 - [[file:99-reference.org][Materials, Glossary, Command Cheatsheet]]
 - Source repo: https://github.com/calebc42/sovereignty-stack
+
+
+* Task list – v2025-09-14
+** REPO STRUCTURE
+*** TODO Create top-level directories
+    - tutorials/ lab-notebooks/ lib/ schema/ docs/ scripts/
+*** TODO Add lib/ for shared helpers (bash + pwsh).
+*** TODO Add .github/workflows/ci.yml that runs shellcheck + PSScriptAnalyzer on every lab-notebook script.
+*** TODO Add schema/baton-v1.json and validate baton files in CI.
+*** TODO Add .github/ISSUE_TEMPLATE/bug-report.yml and feature-request.yml
+*** TODO Add CONTRIBUTING.md (coding style, commit-msg format, DCO sign-off)
+*** TODO Add SECURITY.md (GPG key for responsible disclosure, scope)
+*** TODO Pin third-party actions by SHA256 in all workflows (supply-chain)
+** BATON PIPELINE
+*** TODO Step 01 script produces sovereignty-chain.01.json
+*** TODO Every subsequent script refuses to run if previous baton file is missing or hash invalid.
+*** TODO Every baton file contains schema_version, step, created_at, artefacts{}, env{}.
+*** TODO No script mutates a baton file it did not create (immutable history).
+*** TODO Sign each baton file with repo GPG key (detached .sig) before upload
+*** TODO Store baton signature in CI artifact for 90 days
+*** TODO Provide one-line verifier: curl | bash that downloads baton+sig and gpg --verify
+** PEDAGOGICAL TRACK
+*** TODO Each tutorial page contains only copy-paste single commands.
+*** TODO Every command block preceded by “Purpose” paragraph and followed by “What just happened” paragraph.
+*** TODO No helper functions, no curl|bash, no >run.ps1 invocations.
+*** TODO Links to corresponding lab-notebook page with anchor text: “If you prefer a one-script version, see the lab-notebook.”
+*** TODO Add “Copy” button to every code block (GitHub-native or docsify)
+*** TODO Provide dark-mode screen-shots (800 px max) for every major CLI output
+*** TODO Record 15-sec GIF for *each* tutorial page (Loom compressed < 2 MB)
+
+** EXECUTABLE TRACK
+*** TODO Each lab-notebook directory contains:
+**** TODO README.org (prose rationale, no commands)
+**** TODO run.sh or run.ps1 (idempotent, shellcheck-clean)
+**** TODO rollback.sh/ps1 (best-effort undo)
+**** TODO sovereignty-chain.xx.json (generated, git-ignored)
+*** TODO Script begins with pre-condition assertions (platform, tools, baton hash).
+*** TODO Script ends with post-condition assertion (artefact hash matches baton).
+*** TODO All paths are relative to PSScriptRoot/(dirname “$0”) – no pwd assumptions.
+*** TODO Scripts exit 0 only if *all* artefacts are reproducible (bit-for-bit)
+*** TODO Provide Windows-native and Linux-native CI matrix (Ubuntu-latest + windows-latest)
+*** TODO Cache Debian ISO in CI to avoid re-download (keyed by SHA512)
+
+** CROSS-LINKING
+*** TODO Tutorial page header contains banner: “This is the pedagogical track. Switch to lab-notebook for automation.”
+*** TODO Lab-notebook page header contains banner: “This is the executable track. Switch to tutorial for line-by-line explanation.”
+*** TODO Every prose paragraph that mentions a cryptographic hash or URL is symlinked between both tracks (single source).
+*** TODO Add “permalink” anchor above every H2 header for deep-linking
+*** TODO Generate HTML redirect from /latest → most-recent tag (GitHub pages)
+
+** TESTING
+*** TODO CI job spins up Windows runner + WSL2 and executes the entire chain end-to-end.
+*** TODO Final job compares baton files produced by tutorial commands vs. lab-notebook script – must be identical.
+*** TODO Badge in root README shows “pipeline reproducible | passing”.
+*** TODO Add nightly cron job that rebuilds *without* cache to detect upstream drift
+*** TODO Add Dependabot for GitHub actions and Python/Node dependencies
+*** TODO Fail CI on *any* shellcheck warning (not just error)
+
+** DOCUMENTATION
+*** TODO Root README explains folder layout, naming scheme, and how to contribute.
+*** TODO CHANGELOG.md uses baton file schema_version bumps as release markers.
+*** TODO LICENSE file exists (SPDX identifier in repo).
+*** TODO 3-min Loom of step-01 finishing with baton JSON
+*** TODO Create one-page PDF “Executive Summary for Hiring Managers” (docs/hiring-packet.pdf)
+*** TODO Add Google Analytics / Plausible *opt-in* cookie banner for reader metrics
+*** TODO Provide bibtex file for academic citation (docs/citation.bib)
+
+** HUMAN REVIEW
+*** TODO Print the tutorial page and run every command manually on a blank laptop – succeeds.
+*** TODO Clone repo on a second machine, run lab-notebook scripts – produces bit-identical baton files.
+*** TODO Spell-check, alt-text on images, no 404 external links.
+*** TODO Résumé “Technical Projects” bullet updated with repo link + metric
+*** TODO LinkedIn featured section post with thumbnail image and 200-character hook
+*** TODO Ask *two* external reviewers (one technical, one non-technical) to complete step 01 and file issues for any ambiguity
+
+** RELEASE & DISTRIBUTION
+*** TODO Tag v1.0.0 when steps 01-05 pass CI on two independent machines
+*** TODO Attach signed tarball (repo+batons) to GitHub release
+*** TODO Submit repo to Awesome-Self-Hosted, HackerNews “Show HN”, r/selfhosted
+*** TODO Add repo to personal website portfolio with case-study write-up
+*** TODO Schedule 6-month reminder calendar event to refresh Debian ISO hashes
+
+** EXIT CRITERIA (definition of “DONE”)
+- All checkboxes ticked and visible in CI badge.
+- External reviewer can:
+  – Clone repo
+  – Run *either* track
+  – Obtain identical sovereignty-chain.01.json
+  – Without asking you a question.
+- Hiring-manager PDF generated and downloaded at least once.
+- Résumé repo link clicked through Bitly shows ≥ 10 unique hits.
+
+** MOTIVATION & ANTI-BURNOUT KIT
+*** TODO Keep a *public* dev-log (GitHub issues or discussions) – one sentence per day is enough.
+*** TODO If a single step takes > 3 nights, *cut scope* and ship the smaller version; you can expand in v1.1.
+*** TODO Celebrate micro-wins: green CI badge, first external star, first typo PR – screenshot it, set as phone wallpaper.
+*** TODO When stuck, *verbally explain* the blocker to a rubber-duck or voice-note; 80 % of blocks dissolve before you finish speaking.
+*** TODO Protect the *morning hour* (before work) for 25-min pomodoro on this project; evenings are for family, not will-power.
+*** TODO Re-read your *own* Executive Summary once a week – remember the OEM telemetry horror that started this; anger is renewable energy.
+*** TODO Use “release-early” rule: every merged PR must produce *some* user-visible improvement (badge, typo fix, new GIF). Momentum > perfection.
+*** TODO Keep a “done” list (reverse TODO) at the bottom of this file; watching it grow is cheaper than therapy.
+*** TODO If motivation crashes, *lower the bar* instead of quitting: e.g., ship only the tutorial track for step 01, then pause. A parked car is easier to restart than a burned-out one.
+*** TODO Reminder: this repo is *not* your identity; it is a *signal*. Signals can be iterated; identities feel existential. Iterate, don’t existential-crisis.
+
+| Day   | Public deliverable (30 min)                                                                                                              | Job-hunt weapon (30 min)                                                                                                                     | Visibility hack                                                                                                                      |    |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |    |
+| 1     | Push **empty repo** + `README.md` + `.github/workflows/ci.yml` that only runs `shellcheck` on an empty `run.sh` → green badge appears    | Add **"Technical Projects"** section to résumé with repo link & green badge icon                                                             | Post LinkedIn update: *"Day-0: I just open-sourced my reproducible-lab notebook. Green CI badge ✅. Follow along."*                 |    |
+| 2–3   | Write 300-word **dev-log entry #1** in repo `DISCUSSIONS`:*"Why I’m tracking every SHA-512 hash of a Debian ISO while flipping burgers"* | Copy that text into **5 RevOps job cover letters** → shows grit + data rigor                                                                 | Tweet thread `#100DaysOfOps` screenshot of badge                                                                                     |    |
+| 4–5   | Drop **dev-log entry #2**: short Loom video (2 min) showing you running step-01 commands manually → embed video in README                | Add **"Skills"** bullet: *"Bash, JSON-schema, CI automation"*                                                                                | Tag Loom on Twitter → auto-retweet from their account                                                                                |    |
+| 6–7   | Publish **hiring-packet.pdf** (one-page) in `docs/` → link in repo header                                                                | Apply to **10 "Revenue Operations Analyst"** roles with PDF attached                                                                         | Post PDF on LinkedIn *"Portfolio piece: how I audit supply-chains with JSON and bash — no magic, all public."*                       |    |
+| 8–9   | **Dev-log entry #3**: screenshot of first CI failure + how you fixed it → shows problem-solving                                          | Add **"Process improvement"** bullet: *"Reduced verification time from 120 min to 7 min via shell automation"*                               | Submit failed-build screenshot to r/devops → traffic spike                                                                           |    |
+| 10–12 | Finish tutorial track **step-01** (only 5 real commands) → push, green badge stays                                                       | Cold-email **3 local tech companies**:*"I’ll automate your CRM data hygiene for free in exchange for a reference letter."* Include repo link | Add repo to Hacker News *"Show HN"* (even unfinished) — story is *"unemployed guy documents firmware audit while working fast-food"* |    |
+| 13–14 | **Dev-log entry #4**: what you learned about reproducibility vs fast-food SOPs (funny, relatable)                                        | Apply to **5 more jobs** using new bullet: *"Built reproducible compliance pipeline; 100 % commands open-source, CI-verified."*              | Ask first 3 external visitors to open GitHub issues for typos → now you have *contributors*                                          |  |

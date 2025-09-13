@@ -1,0 +1,865 @@
+:PROPERTIES:
+:ID:       73db43e8-3aed-4046-b6b3-bd0ed550c61c
+:archived: f
+:modified: [2025-09-12 Fri 18:35]
+:END:
+#+FILETAGS: :draft:
+
+#+TITLE: Building and Securing a Host OS
+#+AUTHOR: Caleb Christensen
+#+DESCRIPTION: My experience going from a blank slate to a secure, encrypted, remotely-accessible Debian host, ready for virtualization.
+
+* Introduction
+Before we confront the sealed firmware, we must first establish a foothold with a trusted environment we fully control. That begins with a bootable USB drive loaded with a stable, security-oriented, and —crucially— community-driven distribution: Debian. 
+
+This distribution choice is a deliberate declaration. You are choosing the software that runs on your hardware. You are replacing opaque vendor code with something inspectable, modifiable, and community-audited. This is the first brick in your fortress of sovereignty.
+
+Whether you create boot drive on your current laptop, a borrowed machine, or even a library computer — this USB is your single-factor, physical root-of-trust transfer token.
+
+To install Debian on the target laptop, we need to create a bootable USB drive from an installer image file (.iso). We will use the Debian "net-installer," a minimal image that downloads the necessary packages during installation.
+
+This Operating System will be our sovereign host, ~Dom0~. In virtualization, ~Dom0~ (“Domain 0”) is the privileged control domain — the first and most trusted operating system started by the hypervisor. It has direct access to hardware and is responsible for managing all other virtual machines, these are called ~DomU~ (“Unprivileged Domain”).
+
+In our architecture, the Debian system we’re about to install will become ~Dom0~ — the sovereign host that controls, monitors, and isolates everything else. It is the new “root of trust” — not because the firmware beneath it is trustworthy, but because it is auditable, modifiable, and under our control.
+
+The ~Dom0~ is the seat of governance in our reclaimed machine. All other software from browsers, email clients, and even entire alternate operating systems, will run as guests, contained and observed.
+
+We begin by installing Debian not as an “OS replacement,” but as the first layer of the sovereignty stack — built on freedom where you, not the vendor, exercise control and ownership.
+
+* Media Preparation
+First, I need to collect the download link of not just the software installer image, but also proof of its integrity and proof of the proof’s authenticity.
+
+At time of writing, the most transparent method of locating is to;
+1. Use an internet browser and navigate to the official website, [[https://debian.org][https://debian.org]].
+2. Follow the [[https://www.debian.org/distrib][Other downloads]]{:target=_"blank"} link.
+3. Here, you can select the first link, [[https://www.debian.org/CD/http-ftp/#mirrors][Download mirrors{:target=_"blank"}]] or the [[https://www.debian.org/CD/][complete installation image]]{:target=_"blank"} lower down the page.
+
+   A. From the "complete installation image" redirect, choose the first link, [[https://www.debian.org/CD/http-ftp/][Download USB/CD/DVD images using HTTPS]]
+   - If using an Intel or AMD Processor, select [[https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/][amd64]] for standard 64-bit computers under the *CD/USB* header.
+
+   B. From the "Download mirrors" redirect, scroll up to select  [[https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/][amd64]] under the *CD/USB* header.
+   
+5. Finally, we have reached the repository, review the =SHA512SUMS=, =SHA512SUMS.sign= and =debian-XX.X.X-amd64-netinst.iso= URLS, compare the URLS with the provided command:
+
+Automated command set (Regex pattern works at time of publishing): 
+#+begin_src PowerShell
+# Evergreen Debian download (always gets current stable)
+Set-Location $Home\Desktop\debian-netinst
+$IsoName = (Invoke-WebRequest -Uri "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/" -UseBasicParsing).Content | Select-String -Pattern 'debian-[0-9.]*-amd64-netinst\.iso' | Select-Object -First 1 | ForEach-Object { $_.Matches[0].Value }
+Invoke-WebRequest -Uri "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/$IsoName" -OutFile $IsoName
+Invoke-WebRequest -Uri "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/SHA512SUMS" -OutFile "SHA512SUMS"
+# You may need to press Enter again for the signature file
+Invoke-WebRequest -Uri "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/SHA512SUMS.sign" -OutFile "SHA512SUMS.sign"
+#+end_src
+
+/Want to roll your own? =Right-click= > ="Copy link address"= and paste fresh URLs below and build the command live.
+  *Always* eyeball the result before you paste into a terminal./
+
+#+begin_export html
+<p><b>Dynamic command set (updates live as you type):</b></p>
+#+end_export
+
+#+begin_src powershell
+# Download Debian installer and verification files  
+Invoke-WebRequest -Uri "__ISOURL__" -OutFile (Split-Path "__ISOURL__" -Leaf)
+Invoke-WebRequest -Uri "__CHECKSUMURL__" -OutFile (Split-Path "__CHECKSUMURL__" -Leaf)
+Invoke-WebRequest -Uri "__SIGURL__" -OutFile (Split-Path "__SIGURL__" -Leaf)
+#+end_src
+
+#+begin_export html
+<p>
+  <label for="isoURL"><b>Debian ISO URL:</b></label><br>
+  <input type="text" id="isoURL" class="dynamic-input" data-placeholder="__ISOURL__" size="60" placeholder="Insert text to replace __ISOURL__">
+</p>
+<p>
+  <label for="checksumURL"><b>SHA512SUMS URL:</b></label><br>
+  <input type="text" id="checksumURL" class="dynamic-input" data-placeholder="__CHECKSUMURL__" size="60" placeholder="Insert text to replace __CHECKSUMURL__">
+</p>
+<p>
+  <label for="checksumsigURL"><b>SHA512SUMS.sign URL:</b></label><br>
+  <input type="text" id="checksumsigURL" class="dynamic-input" data-placeholder="__SIGURL__" size="60" placeholder="Insert text to replace __SIGURL__">
+</p>
+#+end_export
+
+#+begin_warning
+@@html:<strong>Security note:</strong>@@ These inputs are evaluated in your browser only.
+A malicious browser extension could alter them. Verify the command visually before execution.
+#+end_warning
+   
+** Audit the Downloaded Image
+Before writing anything to USB, it's important to verify the image is genuinely from Debian and has not been tampered with or corrupted.
+
+This is layered verification: the ISO is checked against the checksum, and the checksum is checked against the signature. No single file is trusted in isolation. This is how sovereignty is built — brick by brick, hash by hash. 
+- Checksum :: Cryptographically calculated hash from a block of data, such as a file, that acts like a digital fingerprint. If even a single bit of data is different, the checksum will not match.
+
+*** Verify the Integrity
+For minimal dependencies, we can use built-in the PowerShell CMDlet, =Get-FileHash=. However, this only verifies the hash matches what was downloaded, it does not ensure the orginal download is not malicious.
+1. Navigate to where the image was downloaded:
+   #+begin_src powershell
+   cd $Home\Downloads
+   #+end_src
+
+2. Locate the specific downloaded ISO file:
+   #+begin_src powershell
+   $IsoFile = Get-Item $Home\Downloads\debian-*-amd64-netinst.iso | Select-Object -ExpandProperty Name
+   #+end_src
+
+3. Next, extract the *expected* hash for your specific ISO from the SHA512SUMS file:
+   #+begin_src powershell
+   $Expected = (Get-Content SHA512SUMS | Where-Object { $_ -match $IsoFile }) -split '\s+' | Select-Object -First 1
+   #+end_src
+
+4. Calculate the *actual* hash of your downloaded file:
+   #+begin_src powershell
+   $Observed = (Get-FileHash -Algorithm SHA512 $IsoFile).Hash
+   #+end_src
+
+5. Finally, compare the hashes:
+   #+begin_src powershell
+   if ($Expected.ToUpper() -eq $Observed.ToUpper()) {
+       Write-Host "✅ SHA-512 MATCH" -ForegroundColor Green
+       Write-Host "ISO SHA-512: $Observed" -ForegroundColor Cyan
+   } else {
+       Write-Host "❌ SHA-512 MISMATCH" -ForegroundColor Red
+       exit 1
+   }
+   #+end_src
+
+If they do not match; delete the file and re-download.
+
+*** (Optional) Export a JSON manifest for documentation and verification auditing.
+This must be run in the same PowerShell Session as steps 1-4, if you are returning in a new terminal, return to those steps.
+6. Build an audit trail for documentation:
+   #+begin_src powershell
+       @{
+           IsoFile      = $IsoFile
+           IsoSha512    = $Observed
+           ChecksumFile = "SHA512SUMS"
+           SigFile      = "SHA512SUMS.sign"
+           Timestamp    = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssK")
+       } | ConvertTo-Json |
+           Out-File -Encoding utf8 "$Home\Downloads\debian-integrity.json"
+
+       Write-Host "Manifest saved to $Home\Downloads\debian-integrity.json" -ForegroundColor Cyan
+   #+end_src
+
+This is the debian-integrity.json output I generated at time of publishing:
+#+begin_example
+{
+    "IsoSha512":  "873E9AA09A913660B4780E29C02419F8FB91012C8092E49DCFE90EA802E60C82DCD6D7D2BEEB92EBCA0570C49244EEE57A37170F178A27FE1F64A334EE357332",
+    "IsoFile":  "debian-13.1.0-amd64-netinst.iso",
+    "Timestamp":  "2025-09-13T10:23:33-06:00",
+    "ChecksumFile":  "SHA512SUMS",
+    "SigFile":  "SHA512SUMS.sign"
+}
+#+end_example
+
+*** (Optional, recommended) Verify the Authenticity
+I began by using *Gnu Privacy Guard* (GPG) to verify the Developer of our tools, establishing a critical first act of trust. Later, we’ll transform GPG into our personal keychain, managing our digital identity across the entire stack.
+- Gnu Privacy Guard :: A free and open-source implementation of the OpenPGP standard, which is based on the original PGP (Pretty Good Privacy) software. A foundational tool that enables the use of digital signatures and public-key cryptography to ensure the integrity and authenticity of files
+
+***** Install GPG using Windows Package Manager, =winget=:
+First, we want to ensure we are protecting ourselves against *Typo Squatting*, where a bad actor will use a common mis-spelling of a package to distribute malware.
+- Package Manager :: Handles repository management and automatically resolves package dependencies. Think of it as an app store for your terminal; it handles finding, installing, and updating software.
+  
+We will search for the software by name;
+#+begin_src powershell
+winget search "Gnu Privacy Guard"
+#+end_src
+It should return something similar to:
+: Name              Id          Version Source
+: ---------------------------------------------
+: GNU Privacy Guard GnuPG.GnuPG 2.4.8   winget
+
+Any results cannot be blindly trusted and must be independently verified, we will =show= to get a detailed report of the search results.
+#+begin_src powershell
+winget show GnuPG.GnuPG
+#+end_src
+This search will yield multiple results. Before installing /anything/, @@html:<strong>it is critical to vet the package to avoid security risks like <b>typo squatting</b></strong>@@, where malicious actors upload packages with names similar to legitimate ones. We can inspect the full details of a package using =winget show= to find the =Id=, =Publisher=, and =Homepage= fields.
+
+For each of the fields, these are *unverified claims* until independantly vetting using the following process:
+
+1. *Corroborate*: Do not blindly trust and navigate to the Homepage URL listed in the manifest. Instead, use an independent search engine to find the software's official project website. This is the non-negotiable step to establish a ground truth.
+2. *Verify*: Compare the Publisher name and package Id from the manifest against the official developer or organization name found on the official website. Any discrepancy, however minor, is a red flag that should halt the installation.
+3. *Execute*: Only after you have independently verified that the manifest's claims align with the official source, proceed with the installation using the precise command: ~winget install --id <PackageId> --exact~.
+
+Once verified, we can safely install;
+#+begin_src powershell
+winget install GnuPG.GnuPG
+#+end_src
+This time, since we used a package manager, we will not need to verify the integrity of the download using the hashes, as this is done automatically for us, and you have already authenticated the package in the previous step.
+
+After installing a package, =winget= hands control over to that package installer. The installer itself is responsible for everything from where the program is placed on your hard drive to whether it adds shortcuts, registers file associations, and modifies the system's PATH environment variable. Some installers, especially for developer tools like GnuPG, assume you will handle this part yourself, as it can be a source of problems if not done correctly.
+
+To do this, we will need to exit our existing PowerShell Session  (type ~exit~, then "Enter\"), then open an additional PowerShell Terminal as an Administrator using: @@html:<kbd>Win+x</kbd>@@ @@html:<kbd>a</kbd>@@. This ensures we have the permissions needed to modify the system PATH.
+
+First, verify if the package was added to PATH:
+#+begin_src powershell
+Get-Command gpg
+#+end_src
+If you get an error that =gpg= is not found this does not mean the installation failed, but rather that we haven't told the system where to find it.
+
+If it isn't found, paste in this script,
+#+begin_src powershell
+$GpgExe = Get-ChildItem -Path "C:\Program Files*" -Filter "gpg.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($GpgExe) {
+    $GpgDir = Split-Path -Parent $GpgExe.FullName
+    [Environment]::SetEnvironmentVariable("PATH", $Env:PATH + ";" + $GpgDir, [EnvironmentVariableTarget]::Machine)
+    Write-Host "GPG added to PATH: $GpgDir" -ForegroundColor Green
+} else {
+    Write-Host "GPG installation not found" -ForegroundColor Red
+    exit 1
+}
+#+end_src
+Or;
+/Want to roll your own? Use these instructions.
+     *Always* eyeball the result before you paste into a terminal./
+We need to locate where the installer downloaded the application to:
+#+begin_src powershell
+Get-ChildItem -Path "C:\Program Files*" -Filter "gpg.exe" -Recurse -ErrorAction SilentlyContinue
+#+end_src
+The =-ErrorAction SilentlyContinue= part just tells PowerShell not to show you any "Access Denied" errors it might encounter when trying to look inside protected system folders.
+The result should list a Directory location, such as:
+:     Directory: C:\Program Files (x86)\gnupg\bin
+:
+: Mode                 LastWriteTime         Length Name
+: ----                 -------------         ------ ----
+: -a---          9/13/2025  10:23 AM         123456 gpg.exe
+
+Copy the Directory path (in this case: `C:\Program Files (x86)\gnupg\bin`) for the next step, adding the Directory path to the system PATH:
+#+begin_src powershell
+[System.Environment]::SetEnvironmentVariable(
+    "PATH", $env:PATH + ";" + "__GPGPATH__", [EnvironmentVariableTarget]::Machine)
+#+end_src
+#+begin_export html
+<p>
+  <label for="gpgPath"><b>GPG Path:</b></label><br>
+  <input type="text" id="gpgPath" name="gpgPath" class="dynamic-input" data-placeholder="__GPGPATH__" size="60" placeholder="Insert text to replace __GPGPATH__">
+</p>
+#+end_export
+
+Refresh the environment variables for the PATH modification to take effect:
+#+begin_src powershell
+refreshenv
+#+end_src
+
+Now, we can confirm the installation:
+#+begin_src powershell
+gpg --version
+#+end_src
+
+***** Verification Using GPG
+Then, import Debian’s official signing keys. The provider key IDs we're importing are Debian’s official signing keys but you should never trust them just because a tutorial says so.
+
+→ [[https://www.debian.org/CD/verify][Verify them yourself on Debian’s official site]].
+
+We’ll use the 3 CD release signing keys listed:
+#+begin_src powershell
+gpg --keyserver keyserver.ubuntu.com --recv-keys 988021A964E6EA7D DA87E80D6294BE9B 42468F4009EA8AC3
+#+end_src
+#+begin_example
+gpg: C:\\Users\\caleb\\AppData\\Roaming\\gnupg\\trustdb.gpg: trustdb created
+gpg: key 42468F4009EA8AC3: public key "Debian Testing CDs Automatic Signing Key <debian-cd@lists.debian.org>" imported
+gpg: key DA87E80D6294BE9B: public key "Debian CD signing key <debian-cd@lists.debian.org>" imported
+gpg: key 988021A964E6EA7D: public key "Debian CD signing key <debian-cd@lists.debian.org>" imported
+gpg: Total number processed: 3
+gpg:               imported: 3
+#+end_example
+
+After importing the keys, verify the signature:
+#+begin_src powershell
+gpg --verify SHA512SUMS.sign SHA512SUMS
+#+end_src
+The output will likely look like this:
+#+begin_example
+gpg: Signature made 09/06/25 15:54:29 Mountain Daylight Time
+gpg:                using RSA key DF9B9C49EAA9298432589D76DA87E80D6294BE9B
+gpg: Good signature from "Debian CD signing key <debian-cd@lists.debian.org>" [unknown]
+gpg: WARNING: This key is not certified with a trusted signature!
+gpg:          There is no indication that the signature belongs to the owner.
+Primary key fingerprint: DF9B 9C49 EAA9 2984 3258  9D76 DA87 E80D 6294 BE9B
+#+end_example
+This is **not an error** — it’s GPG doing its job.
+This warning exists to protect you from “key substitution” attacks — where an attacker replaces a legitimate key on the keyserver with their own. By forcing you to verify the fingerprint against an official source (like debian.org over HTTPS), GPG ensures you’re not trusting a malicious imposter — even if their signature is mathematically valid.
+
+Finally, check the key fingerprints:
+#+begin_src powershell
+gpg --fingerprint 988021A964E6EA7D DA87E80D6294BE9B 42468F4009EA8AC3
+#+end_src
+
+You should see output like:
+#+begin_example
+pub   rsa4096 2009-10-03 [SC]
+      1046 0DAD 7616 5AD8 1FBC  0CE9 9880 21A9 64E6 EA7D
+uid           [ unknown] Debian CD signing key <debian-cd@lists.debian.org>
+
+pub   rsa4096 2011-01-05 [SC]
+      DF9B 9C49 EAA9 2984 3258  9D76 DA87 E80D 6294 BE9B
+uid           [ unknown] Debian CD signing key <debian-cd@lists.debian.org>
+sub   rsa4096 2011-01-05 [E]
+
+pub   rsa4096 2014-04-15 [SC]
+      F41D 3034 2F35 4669 5F65  C669 4246 8F40 09EA 8AC3
+uid           [ unknown] Debian Testing CDs Automatic Signing Key <debian-cd@lists.debian.org>
+sub   rsa4096 2014-04-15 [E]
+#+end_example
+#+begin_note
+The [unknown] indicates the trust level of your *local* trust database. You can reference the [[file:gpg.org][Cryptography with GNU Privacy Guard]] to update this information.
+#+end_note
+
+Cross-reference the fingerprints on:
+- [[https://www.debian.org/CD/verify][Debian CD Verification Guide]]
+- [[https://ftp-master.debian.org/keys.html][Debian FTP Master Keys]]
+
+If you find a match then you’ve successfully cryptographically and visually confirmed the key’s authenticity. This is the gold standard of verification.
+
+* Create the Bootable USB Drive
+** Installing WSL2 Debian
+This guide uses a primary workstation to remotely manage a secondary laptop that will host the 'Sovereignty Stack'. This provides a fundamental layer of isolation, preventing a compromise of the experimental system from immediately impacting the primary workstation.
+
+From the primary workstation we will initialize and configure all of the tools needed for the project. As an accessible entry point, we will be using Windows 11. From the Desktop, use the following key-chord to open a PowerShell terminal as an Administrator:
+@@html:<kbd>Win + x</kbd> <kbd>a</kbd>@@
+
+Using Admin PowerShell terminal, run the following command to install the Windows Subsystem for Linux with the Debian distribution:
+#+begin_src powershell
+wsl --install -d Debian
+#+end_src
+- *Command Explanations*:
+  - ~wsl~ - @@html:<i>(<u>W</u>indows <u>S</u>ubsystm for <u>L</u>inux)</i>@@: :: A compatibility layer that allows Linux binary executables to interact with Kernel level processes without requiring disk-partitioning for a dual-boot set-up.
+    - ~--install~: :: An option that initiates the WSL setup process and installs a Linux distribution.
+    - ~-d~ / ~--distribution~: :: A switch that flags the command we are specifying a non-default distribution. We are choosing Debian, but you can see other options with ~wsl --list --online~.
+
+We will next follow the on-screen instructions for standard Linux user creation.
+- Create the default UNIX user account.
+  : Enter new UNIX username:
+  @@html:<kbd>Enter</kbd>@@
+  : New password:
+  @@html:<kbd>Enter</kbd>@@
+  : Retype new password:
+  #+begin_note
+  As you enter the password, no visual feedback will be returned, not even a placeholder such as ~****~, this is an intentional security design.
+  #+end_note
+
+  The terminal will print the following and drop you into the directory you were in when =wsl.exe= was executed for creating the UNIX User:
+  : passwd: password updated successfully
+  : usermod: no changes
+  : $USERNAME@$HOSTNAME:/mnt/c/Users/%USERNAME%
+
+Once you are at the Debian command-line interface, change your location from the Windows User directory to the UNIX User directory.
+#+begin_src
+cd ~
+#+end_src
+- *Command Explanations*:
+  - ~cd~ - @@html:<i>(<u>C</u>hange <u>D</u>irectory)</i>@@: :: Standard POSIX method for navigating the drive.
+  - ~~~ - @@html:<i>(Tilde)</i>@@: :: Shorthand for =/home/$user=.
+** Preparing WSL2 to Access Your USB Drive
+To use ~dd~, we need WSL2 to see your USB drive as a raw block device (like =/dev/sdi=). By default, WSL2 only mounts Windows drives (C:, D:, etc.).
+
+Plug in the USB, preferably using a rear I/O USB 2.0 port if available, as USB 3.0 devices sometimes have issues with passthrough
+
+We’ll use ~usbipd-win~, a Microsoft-supported open-source tool, to expose your USB to WSL2.
+***** Step 1: Install usbipd-win
+From PowerShell (Admin):
+
+#+begin_src powershell
+winget install usbipd
+#+end_src
+Restart the session to add it to PATH. Review the earlier steps to add it manually if needed.
+
+***** Step 2: List USB Devices
+#+begin_src powershell
+usbipd list
+#+end_src
+
+You’ll see output like:
+#+begin_example
+Connected:
+BUSID  VID:PID    DEVICE                                                        STATE
+1-3    8087:0032  Intel(R) Wireless Bluetooth(R)                                Not shared
+1-5    1bcf:2283  NexiGo N930AF FHD webcam, NexiGo N930AF FHD webcam Audio      Not shared
+1-7    1532:0287  USB Input Device, Razer BlackWidow V4                         Not shared
+1-10   0781:5581  USB Mass Storage Device                                       Not Shared
+1-12   1b1c:0c0c  USB Input Device                                              Not shared
+1-13   26ce:01a2  USB Input Device                                              Not shared
+2-3    1532:0067  Razer Naga Trinity                                            Not shared
+9-1    1997:2466  USB Input Device                                              Not shared
+10-2   0bda:8153  Realtek USB GbE Family Controller #2                          Not shared
+
+Persisted:
+GUID                                  DEVICE
+#+end_example
+The only storage device in this list is 
+: 1-10    0781:5581  USB Mass Storage Device
+Which means this is what I am looking for.
+
+If you have multiple USB Mass Storage devices, identify yours by:
+
+1. **Unplug the target USB drive** and run ~usbipd list~ - note which device disappears
+2. **Plug it back in** and run ~usbipd list~ again - the device that reappeared is your target
+3. **Check the VID:PID against known vendors**:
+   - `0781` = SanDisk
+   - `090c` = Silicon Motion (common in generic drives)
+   - `8564` = Transcend
+   - `13fe` = Kingston
+
+***** Step 3: Bind and Attach to WSL2
+From an Administrator PowerShell Session:
+#+begin_src powershell
+# Replace 1-10 with your USB's BUSID
+usbipd bind --busid 1-10
+usbipd attach --wsl --busid 1-10
+#+end_src
+You'll see some output such as:
+#+begin_example
+usbipd: info: Using WSL distribution 'Debian' to attach; the device will be available in all WSL 2 distributions.
+usbipd: info: Loading vhci_hcd module.
+usbipd: info: Detected networking mode 'mirrored'.
+usbipd: info: Using IP address 127.0.0.1 to reach the host.
+#+end_example
+
+Run:
+#+begin_src powershell
+usbipd list
+#+end_src
+and the output should be updated to:
+#+begin_example
+Connected:
+BUSID  VID:PID    DEVICE                                                        STATE
+1-3    8087:0032  Intel(R) Wireless Bluetooth(R)                                Not shared
+1-5    1bcf:2283  NexiGo N930AF FHD webcam, NexiGo N930AF FHD webcam Audio      Not shared
+1-7    1532:0287  USB Input Device, Razer BlackWidow V4                         Not shared
+1-10   0781:5581  USB Mass Storage Device                                       Attached
+1-12   1b1c:0c0c  USB Input Device                                              Not shared
+1-13   26ce:01a2  USB Input Device                                              Not shared
+2-3    1532:0067  Razer Naga Trinity                                            Not shared
+6-1    10d6:b00d  HiDock_H1E                                                    Not shared
+6-2    2ec2:0004  USB Serial Device (COM9), Loupedeck Live                      Not shared
+9-1    1997:2466  USB Input Device                                              Not shared
+9-4    1395:005c  HiDock H1E, USB Input Device                                  Not shared
+10-2   0bda:8153  Realtek USB GbE Family Controller #2                          Not shared
+
+Persisted:
+GUID                                  DEVICE
+#+end_example
+
+***** Step 4: Verify in WSL2
+Open WSL2 Debian and run:
+#+begin_src powershell
+wsl
+#+end_src
+
+#+begin_src bash
+lsblk -d -o NAME,SIZE,MODEL,TRAN,RM | grep -E "usb|USB"
+#+end_src
+You should see an output similar to:
+#+begin_example
+sdi    28.7G SanDisk 3.2Gen1 usb   1
+#+end_example
+Always verify your target device shows:
+- Correct size (your USB capacity)
+- "usb" in TRAN column
+- "1" in RM (removable) column
+
+#+begin_tip
+Double-check this is your USB as writing to the wrong device will erase it.
+#+end_tip
+
+Now you’re ready to use ~dd~.
+
+**** Write the Verified ISO to USB
+Now that we’ve cryptographically verified our ISO, we must write it to USB and then verify that the write was *bit-for-bit* perfect. A corrupted or miswritten USB will fail to boot, or worse, behave unpredictably during installation.
+#+begin_warning
+NEVER run =dd= on these devices (they're your system):
+=/dev/sda=, ==/dev/sdb=, =/dev/sdc=, etc.
+(These are typically WSL2 virtual disks)
+Only write to the device identified in Step 4, =/dev/sdi= in this case.
+#+end_warning
+
+Set the paths for the variables;
+The WSL username may differ from the Windows username. 
+Verify the correct path with:
+#+begin_src 
+ls /mnt/c/Users/*/Downloads/debian*
+#+end_src
+Then set the user using your actual Windows username.
+/Assuming the user is "user"/
+#+begin_src
+WIN_USER="user"
+#+end_src
+
+/Assuming your USB is "/dev/sdi" and your ISO is in "/mnt/c/Users/user/Downloads/\"/ 
+#+begin_src bash
+ISO="/mnt/c/Users/$WIN_USER/Downloads/debian-13.1.0-amd64-netinst.iso"
+USB_DEVICE="/dev/sdi" # or /dev/ + the lsblk output
+#+end_src
+Run the command:
+#+begin_src bash
+  sudo dd if="$ISO" of="$USB_DEVICE" status=progress oflag=sync
+  sudo sync
+#+end_src
+*Command Explanations*:
+- ~dd~ :: “data duplicator,” a low-level block copy tool.
+- ~if=...~ :: input file (your verified ISO).
+- ~of=...~ :: output file (your USB device).
+- ~status=progress~ :: show progress.
+- ~oflag=sync~ :: ensure all data is written before completion.
+
+/Want to insert your own USB path? Use these instructions.
+     *Always* eyeball the result before you paste into a terminal./
+#+begin_src bash
+sudo dd if="__ISOPATH__" of="__USBDEV__" bs=4M status=progress oflag=sync
+sudo sync
+#+end_src
+#+begin_export html
+<input type="text" id="ISOPath" class="dynamic-input" data-placeholder="__ISOPATH__" value="ISO Download path">
+#+end_export html
+#+begin_export html
+<input type="text" id="usbDevice" class="dynamic-input" data-placeholder="__USBDEV__" size="10" value="/dev/sdi">
+#+end_export html
+
+The output should be similiar to:
+#+begin_src
+  821035008 bytes (821 MB, 783 MiB) copied, 104 s, 7.9 MB/s
+  195+1 records in
+  195+1 records out
+  821035008 bytes (821 MB, 783 MiB) copied, 104.264 s, 7.9 MB/s
+#+end_src
+
+Now we will verify the etching was completed successfully by performing a final checksum on the USB Drive.
+#+begin_src bash
+# Get the original ISO hash from the JSON file
+ISO_HASH_FROM_FILE=$(grep -o '"IsoSha512":\s*"[^"]*"' /mnt/c/Users/$WIN_USER/Downloads/debian-integrity.json | cut -d'"' -f4)
+
+# Calculate USB hash
+USB_HASH=$(sudo head -c "$BYTES" "$USB_DEVICE" | sha512sum | awk '{print $1}')
+
+# Compare (case-insensitive since JSON might be uppercase)
+if [ "${USB_HASH^^}" = "${ISO_HASH_FROM_FILE^^}" ]; then
+    echo "✓ USB write verified successfully - hashes match"
+    echo "Original: $ISO_HASH_FROM_FILE"
+    echo "USB:      ${USB_HASH^^}"
+else
+    echo "✗ CRITICAL: Hash mismatch - USB is corrupted!"
+    echo "Original: $ISO_HASH_FROM_FILE"
+    echo "USB:      ${USB_HASH^^}"
+fi
+#+end_src
+Here's the output I received:
+#+begin_src
+✓ USB write verified successfully - hashes match
+Original: 873E9AA09A913660B4780E29C02419F8FB91012C8092E49DCFE90EA802E60C82DCD6D7D2BEEB92EBCA0570C49244EEE57A37170F178A27FE1F64A334EE357332
+USB:      873E9AA09A913660B4780E29C02419F8FB91012C8092E49DCFE90EA802E60C82DCD6D7D2BEEB92EBCA0570C49244EEE57A37170F178A27FE1F64A334EE357332
+#+end_src
+ The two hashes **must match exactly**.
+
+  If they don’t:
+  - Try re-writing the USB.
+  - Try a different USB port or drive.
+  - Never proceed with a mismatched hash — your USB is corrupted.
+
+This is the final checkpoint before booting. Sovereignty means verifying *every* link in the chain — download → signature → write → boot.
+
+* OS Installation
+Before we install, we need 2 last peices of information from the machine:
+We'll need to know two things from your local network:
+
+- Your router's IP address (e.g., 192.168.1.1).
+
+- A free IP address on that network (e.g., 192.168.1.123).
+
+From a Windows machine - Discover usable static-IP triple (IP/mask, gateway, next-free)
+#+begin_src powershell
+$Route = Get-NetRoute -DestinationPrefix "0.0.0.0/0" -ErrorAction Stop
+$GW    = $Route.NextHop
+$Adapter = Get-NetAdapter -InterfaceIndex $Route.ifIndex -ErrorAction Stop
+$IPconf  = Get-NetIPAddress -InterfaceIndex $Adapter.ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue
+if (-not $IPconf) { Write-Error "No IPv4 on adapter $($Adapter.Name)"; exit 1 }
+
+# Build subnet base (192.168.1.0/24 → 192.168.1)
+$Base  = $IPconf.IPAddress -replace '\.\d+$',''
+$Mask  = $IPconf.PrefixLength
+
+# Find first free host address (x.x.x.200 → x.x.x.250)
+$Start = 200
+$End   = 250
+for ($i = $Start; $i -le $End; $i++) {
+    $Candidate = "$Base.$i"
+    if (-not (Test-Connection $Candidate -Count 1 -Quiet -TimeoutSeconds 100)) {
+        Write-Host "Use these in the installer:"
+        Write-Host "IP address : $Candidate/$Mask"
+        Write-Host "Gateway    : $GW"
+        break
+    }
+}
+#+end_src
+
+Boot the laptop from the USB stick, attach the USB-Ethernet adapter, plug into the router and begin the installation.
+
+Since the laptop has a built in Network adapter, the installer may ask to load non-free firmware for the built-in Wi-Fi.
+- (n) keeps the installation 100% open-source
+- (y) enables wireless networking.
+
+Using a USB-to-Ethernet adapter, I was presented with the following error:
+: Network autoconfiguration failed
+:
+: Your network is probably not using the DHCP protocol. Alternatively, the DHCP server may be slow or some network hardware is not working properly.
+
+Skip network autoconfiguration; we’ll set a static address from =Dom0= where we have better debugging tools.
+
+On the partition screen, we will select
+: Guided - use entire disk and setup LVM with encryption.
+
+The best option for a stable Xen hypervisor is the classic server setup
+: Separate /home, /var, and /tmp partitions.
+
+This scheme provides the isolation needed to run a stable hypervisor. When the installer asks you how to allocate the space, Allocate ~70 % of available space to =/var=; exact GiB numbers aren’t critical because LVM lets you resize later, as this is where your VMs will live. A good starting point might be 20% for =/=, 8% for =/home=, 2% for =/tmp=, and the rest for =/var=.
+
+This will seperate the core Debian operating system, protecting it from runaway processes. By default, the virtual disk images of your Xen VMs (=/var/lib/xen/images=). By giving =/var= its own large partition, you ensure that even if a VM's disk grows unexpectedly or a log file gets huge, it can only fill up the =/var= partition and will not crash the core OS.
+
+Since we are using LVM, these sizes aren't set in stone and can be adjusted later, but this layout provides the right structure from the start.
+
+For the package mangager, we will continue without a network mirror.
+
+On the Software Selection screen: Deselect everything except SSH server and standard system utilities.
+
+Finish the install. Before you reboot, capture the LUKS parameters shown below—needed for the sovereignty audit in [[file:04-crypto.org][P1]].
+
+⚠️  Sovereignty checkpoint – copy once, audit later
+On the partition summary screen, open a second virtual console:
+Alt-F2 → Enter → run:
+
+#+begin_src 
+cryptsetup luksDump /dev/nvme0n1p2 | grep -E 'Cipher|PBKDF|Iterations|Key:|UUID'
+#+end_src
+
+Example output (yours will differ slightly):
+: Cipher:      aes-xts-plain64
+: Key Size:    512 bits
+: PBKDF:       pbkdf2
+: Iterations:  506481
+: UUID:        12345678-1234-1234-1234-123456789abc
+
+Write those lines into the installer’s “Go Back” → “Save Debug Logs” prompt,
+or snap a phone photo.
+
+* Server Configuration
+Now that we are officially booted into the minimal host OS, there are a few configuration steps before moving on to the Virtualization.
+First, you need to get your USB Ethernet adapter working and set up your package manager's sources.
+
+All of these commands require administrator privileges.
+#+begin_src shell
+su -
+#+end_src
+- ~su~ :: This stands for "substitute user." By default, it switches you to the root user if you don't specify another username.
+
+- ~-~ :: This is a flag that tells su to start a login shell. This means it simulates a full login as the new user.
+
+**** Initial Network Bridge Configuration
+For guest VMs (DomUs) to access the network, we must create a network bridge. The bridge acts like a virtual switch, sharing the physical network card with the VMs.
+
+First, identify your primary physical network interface:
+Find your network interface name.
+#+begin_src shell
+ip a
+#+end_src
+Look for an interface that isn't `lo`. It will have a name like `enp3s0` or `enx...` for a USB adapter.
+
+: 1: lo: <LOOPBACK, UP, LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+: ...
+: ...
+: ...
+: 2: enx00051bde17f2: <BROADCAST, MULTICAST, DOWN, LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+: ...
+: ...
+: ...
+: 3: wlp1se: <BROADCAST, MULTICAST> mtu 1500 qdisc noop state DOHN group default qlen 1000
+: ...
+: ...
+: ...
+
+The USB Ethernet adapter (enx...) is recognized by the system, but it's not active =state DOWN=. Because it's down, it never asked your router for an IP address, so you have no network connection and DNS lookups are failing.
+#+begin_src shell
+ip link set enx00051bde17f2 up
+#+end_src
+
+#+begin_src shell
+ip a
+#+end_src
+
+: 1: 10: <LOOPBACK, UP, LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+: link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+: inet 127.0.0.1/8 scope host lo
+: valid_ift forever preferred_1ft forever
+: inet6 /128 scope host noprefixroute
+: valid_ift forever preferred_lft forever
+: 2: enx00051bde17f2: <BROADCAST, MULTICAST, UP, LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+: link/ether 00:05:1b:de:17:12 brd ff:ff:ff:ff:ff:ff
+: inet6
+: /64 scope global dynamic mngtmpaddr proto kernel_ra
+: valid_lft 85456sec preferred_1ft 63856sec
+: inet6
+: /64 scope link proto kernel_11
+: valid_lft forever preferred_lft forever
+: 3: wlp1se: <BROADCAST, MULTICAST> mtu 1500 qdisc noop state DOHN group default qlen 1000
+: link/ether 30:95:09:19:f9:cb brd ff:ff:ff:ff:ff:ff
+: altname wlx3c9509f9f9cb
+
+The ~ip a~ output shows the adapter and cable are working perfectly. The ~inet6~ addresses mean your laptop is already communicating with your router over IPv6. The problem is strictly with IPv4.
+
+We'll manually assign one temporarily. This will get us online so we can install the proper tools.
+  
+Here are the steps to take as root:
+
+Assign a static IP address. Replace 192.168.1.123/24 with a free IP address on your network.
+#+begin_src shell
+ip addr add 192.168.1.123/24 dev enx00051bde17f2
+#+end_src
+#+begin_note
+The /24 is the subnet mask and is standard for home networks.
+#+end_note
+
+Set the default gateway. This tells your laptop how to reach the internet. Replace 192.168.1.1 with your router's IP address.
+#+begin_src shell
+ip route add default via 192.168.1.1
+#+end_src
+
+Configure DNS. You need to tell the system where to look up domain names.
+#+begin_src shell
+cat > /etc/systemd/network/10-usb0.network <<EOF
+[Match]
+Name=enx*
+
+[Network]
+DHCP=no
+Address=192.168.1.123/24     # <-- replace with verified open IP address
+Gateway=192.168.1.1
+DNS=1.1.1.1
+EOF
+#+end_src
+
+Unplug and replug your USB Ethernet adapter. You should now have a network connection. You can test it by running ~ping 1.1.1.1~.
+You'll need to end the ping test with a keyboard interruption, @@html:<kbd>Ctrl+c</kbd>@@.
+
+By default, Debian has a network interface (like ~enx...~) that connects directly to the internet. For future guest VMs (DomUs) to access the network, we need to create a network bridge.
+
+The bridge acts like a virtual network switch. Your physical network card will be attached to the bridge, and all your VMs will also connect their virtual network cards to this same bridge, allowing them to share the network connection seamlessly.
+
+I had to edit my network configuration file, this is typically located at =/etc/network/interfaces=.
+#+begin_src conf
+  # Example /etc/network/interfaces for bridging
+
+  # The loopback network interface
+  auto lo
+  iface lo inet loopback
+
+  # The primary network interface
+  # This line makes the physical NIC part of the bridge
+  allow-hotplug enx00051bde17f2
+  iface enx00051bde17f2 inet manual
+
+  # The bridge setup
+  auto br0
+  iface br0 inet dhcp
+  bridge_ports enx00051bde17f2
+  bridge_stp off
+  bridge_fd 0
+#+end_src
+
+Verify the bridge is working:
+#+begin_src
+  ip a show br0
+#+end_src
+My output was:
+#+begin_example
+4: br0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 06:8d:4f:d1:17:71 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.1.109/24 brd 192.168.1.255 scope global dynamic br0
+       valid_lft 67363sec preferred_lft 67363sec
+    inet6 2605:a601:8012:cd00:48d:4fff:fed1:1771/64 scope global dynamic mngtmpaddr proto kernel_ra
+       valid_lft 86394sec preferred_lft 64794sec
+    inet6 fe80::48d:4fff:fed1:1771/64 scope link proto kernel_ll
+       valid_lft forever preferred_lft forever
+#+end_example
+
+Configure the APT sources to ensure the package manager can find all necessary software.
+#+begin_src shell
+  nano /etc/apt/sources.list
+#+end_src
+
+#+begin_src conf
+  #deb cdrom: [Debian GNU/Linux 13.1.0_Trixie_ - Official amd64 NETINST with firmware 20250906-10:22]/ trixie contrib main non-free-firmware
+
+  # This system was installed using removable media other than
+  # CD/DVD/BD (e.g. USB stick, SD card, ISO image file).
+  # The matching "deb cdrom" entries were disabled at the end
+  # of the Installation process.
+  # For information about how to configure apt package sources.
+  # see the sources.list (5) manual.
+  deb http://deb.debian.org/debian/ trixie main non-free-firmware contrib
+  deb-src http://deb.debian.org/debian/ trixie main non-free-firmware contrib
+
+  deb http://security.debian.org/debian-security trixie-security main non-free-firmware contrib
+  deb-src http://security.debian.org/debian-security trixie-security main non-free-firmware contrib
+
+  deb http://deb.debian.org/debian/ trixie-updates main non-free-firmware contrib
+  deb-src http://deb.debian.org/debian/ trixie-updates main non-free-firmware contrib
+#+end_src
+
+#+begin_src shell
+apt update
+#+end_src
+Now, you can install the remote access server, OpenSSH.
+#+begin_src shell
+apt install openssh-server
+#+end_src
+
+Back at the workstation, install the Secure Shell software.
+#+begin_src 
+sudo apt install ssh
+#+end_src
+Generate a key pair if you don't have one:
+#+begin_src 
+ssh-keygen -t ed25519 -C "your_email@example.com"
+#+end_src
+#+begin_note
+The email is for pure convenience, SSH ignores it cryptographically. when you later open authorized_keys on some server you can see whose key that line is without matching long fingerprints.
+#+end_note
+
+Copy the public key to your Xen laptop:
+#+begin_src 
+ssh-copy-id user@laptop_ip
+#+end_src
+
+Now, use the key-pair to access the laptop remotely:
+#+begin_src
+ssh user@laptop_ip
+#+end_src
+
+This setting only allows log in using an SSH key, which is secure. 
+#+begin_src
+sudo mkdir -p /root/.ssh
+#+end_src
+Set the permissions
+#+begin_src
+chmod 700 /root/.ssh
+#+end_src
+
+Now, we will also add the key to the root:
+#+begin_src bash
+cat >> /etc/ssh/sshd_config <<EOF
+
+# Sovereignty stack hardening
+PermitRootLogin prohibit-password
+PasswordAuthentication no
+AuthenticationMethods publickey
+EOF
+systemctl restart ssh
+#+end_src
+
+From your desktop, make sure you can SSH into the Xen host without a password. This is the ultimate test.
+#+begin_src 
+ssh user@192.168.1.109
+#+end_src
+
+You can see how to headlessly reboot a server using LVM encryption with an SSH connection here: [[./dropbear-initramfs-config.org][Headless LUKS unlock using SSH]]
+        

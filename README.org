@@ -6,30 +6,26 @@
 :modified: [2025-09-13 Sat 15:07]
 :END:
 
-#+TITLE: Readme
-#+AUTHOR: Caleb Christensen
-#+DESCRIPTION: 
-#+FILETAGS:
+#+title: Sovereignty Stack – reproducible lab notebook
+#+author: Caleb Christensen
+#+description: Turning a consumer laptop into a tamper-evident, user-controlled platform, one automated step at a time.
 
+* 30-second pitch
+While flipping burgers I audit firmware hashes, script every command, and track 150+ metrics in JSON.
+This repo proves I can =automate boring work, document it, and ship on a schedule=—exactly what RevOps teams need.
 
-# Sovereignty Stack – reproducible lab notebook
+* Badge
+[[https://github.com/calebc42/sovereignty-stack/actions][file:https://github.com/calebc42/sovereignty-stack/workflows/CI%20sanity-check/badge.svg]]
+[[https://opensource.org/licenses/ISC][file:https://img.shields.io/badge/License-ISC-blue.svg]]
 
-**Turning a consumer laptop into a tamper-evident, user-controlled platform, one automated step at a time.**
-
-[![CI sanity-check](https://github.com/YOURUSER/sovereignty-stack/actions/workflows/ci.yml/badge.svg)](https://github.com/YOURUSER/sovereignty-stack/actions)
-[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
-
-## 30-second pitch
-While flipping burgers I audit firmware hashes, script every command, and track 150+ metrics in JSON.  
-This repo proves I can **automate boring work, document it, and ship on a schedule**—exactly what RevOps teams need.
-
-## Repo map
+* Repo map
 #+begin_src bash
 tree -I '*~|#*#|.#*|*.tmp|*.temp|.DS_Store' ./
 #+end_src
 
 #+RESULTS:
 | ./  |                  |                             |       |
+| ├── | catalog.yml      |                             |       |
 | ├── | CHANGELOG.org    |                             |       |
 | ├── | docs             |                             |       |
 | │   | └──              | drafts                      |       |
@@ -66,25 +62,34 @@ tree -I '*~|#*#|.#*|*.tmp|*.temp|.DS_Store' ./
 | ├── | rollback.sh.stub |                             |       |
 | └── | run.sh.stub      |                             |       |
 |     |                  |                             |       |
-| 12  | directories,     | 24                          | files |
+| 12  | directories,     | 25                          | files |
 
-| Path                 | Purpose                                                                        |
-|----------------------+--------------------------------------------------------------------------------|
-| `tutorials/`         | copy-paste, line-by-line explanations (learning track)                         |
-| `lab-notebooks/`     | idempotent scripts + CI verification (automation track)                        |
-| `lib/`               | shared bash / PowerShell helpers                                               |
-| `schema/`            | JSON schema for baton files (machine-readable audit trail)                     |
-| `templates/`         | boiler-plate for new steps (README.org.stub, run.sh.stub, EXIT.lst)            |
-| `.github/workflows/` | CI jobs: shellcheck, PSScriptAnalyzer, ISO hash guard, tutorial-vs-script diff |
-|                      |                                                                                |
+| Path                    | Purpose                                                               |
+|-------------------------+-----------------------------------------------------------------------|
+| =tutorials=             | copy-paste, line-by-line explanations (learning track)                |
+| =lab-notebooks=         | idempotent scripts + CI verification (automation track)               |
+| =lib=                   | shared bash / PowerShell helpers                                      |
+| =schema=                | JSON schema for baton files (machine-readable audit trail)            |
+| =templates=             | boiler-plate for new steps (README.org.stub, run.sh.stub, EXIT.lst)   |
+| =.github/workflows=     | CI jobs: shellcheck, PSScriptAnalyzer, ISO hash guard, diff           |
 
-## Quick start (readers)
-1. open [step 01 tutorial](./tutorials/01-debian-artefact-download/README.org)
-2. follow line-by-line OR run `lab-notebooks/01/run.sh`
-3. both paths produce **bit-identical** `sovereignty-chain.01.json`
+* Quick start (readers)
+1. Open step 1: [[file:tutorials/debian-host/README.org][debian-host tutorial]]
+2. Follow line-by-line *OR* run =lab-notebooks/debian-host/run.sh=
+3. Both paths produce *bit-identical* =sovereignty-chain.debian-host.json=
 
-## Quick start (contributors)
+* Quick start (contributors)
 #+begin_src bash
-cp -r templates/step-starter stubs/XX-name
+cp -r templates/step-starter stubs/STEP-NAME
 # fill stubs, tick EXIT.lst, push PR
 #+end_src
+
+* Daily build evidence
+See [[https://github.com/calebc42/sovereignty-stack/actions][Actions tab]] – every push re-runs the entire chain on a fresh VM.
+
+* Public learning log
+[[https://github.com/calebc42/sovereignty-stack/discussions/categories/learning-log][GitHub Discussions › Learning Log]] – one entry per day, time-stamped.
+
+* License
+ISC – do whatever you want, just don’t blame me.
+
