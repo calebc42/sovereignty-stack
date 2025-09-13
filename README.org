@@ -15,8 +15,9 @@ While flipping burgers I audit firmware hashes, script every command, and track 
 This repo proves I can =automate boring work, document it, and ship on a schedule=—exactly what RevOps teams need.
 
 * Badge
-[[https://github.com/calebc42/sovereignty-stack/actions][file:https://github.com/calebc42/sovereignty-stack/workflows/CI%20sanity-check/badge.svg]]
-[[https://opensource.org/licenses/ISC][file:https://img.shields.io/badge/License-ISC-blue.svg]]
+Badge
+[[https://github.com/calebc42/sovereignty-stack/actions][https://github.com/calebc42/sovereignty-stack/workflows/CI%20sanity-check/badge.svg]]
+[[https://opensource.org/licenses/ISC][https://img.shields.io/badge/License-ISC-blue.svg]]
 
 * Repo map
 #+begin_src bash
