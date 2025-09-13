@@ -16,7 +16,7 @@ This repo proves I can =automate boring work, document it, and ship on a schedul
 
 * Badge
 Badge
-[[https://github.com/calebc42/sovereignty-stack/actions][https://github.com/calebc42/sovereignty-stack/workflows/CI%20sanity-check/badge.svg]]
+[[https://github.com/calebc42/sovereignty-stack/actions/workflows/ci.yml][file:https://github.com/calebc42/sovereignty-stack/actions/workflows/ci.yml/badge.svg]]
 [[https://opensource.org/licenses/ISC][https://img.shields.io/badge/License-ISC-blue.svg]]
 
 * Repo map
@@ -67,8 +67,8 @@ tree -I '*~|#*#|.#*|*.tmp|*.temp|.DS_Store' ./
 
 | Path                    | Purpose                                                               |
 |-------------------------+-----------------------------------------------------------------------|
-| =tutorials=             | copy-paste, line-by-line explanations (learning track)                |
-| =lab-notebooks=         | idempotent scripts + CI verification (automation track)               |
+| =pedagogical=           | copy-paste, line-by-line explanations (learning track)                |
+| =executable=            | idempotent scripts + CI verification (automation track)               |
 | =lib=                   | shared bash / PowerShell helpers                                      |
 | =schema=                | JSON schema for baton files (machine-readable audit trail)            |
 | =templates=             | boiler-plate for new steps (README.org.stub, run.sh.stub, EXIT.lst)   |
