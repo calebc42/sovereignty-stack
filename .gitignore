@@ -1,0 +1,73 @@
+# Emacs noise
+*~
+\#*\#
+.\#*
+# auto-save
+*#
+# backup
+*~
+# lock files
+.#*
+# flycheck / flymake
+*_flycheck.*
+*_flymake.*
+# projectile cache
+.projectile
+# directory variables
+.dir-locals.el
+# session
+session.*
+# recentf
+recentf
+# bookmarks
+bookmarks
+# saveplace
+places
+# tramp
+/tramp
+# eshell history
+.eshell/history
+.eshell/lastdir
+# org-mode
+.org-id-locations
+# compiled elisp
+*.elc
+# package archives
+/elpa/
+# undo-tree history
+*.~undo-tree
+
+# Repo-specific
+sovereignty-chain.*.json
+sovereignty-chain.*.json.sig
+public/          # if you later add Hugo publish folder
+*.log
+.DS_Store
+Thumbs.db
+docs/drafts/
+
+# Project artefacts (never source)
+*.iso
+*.img
+*.qcow2
+*.vdi
+*.vmdk
+
+# Baton artefacts (generated, signed, cached)
+sovereignty-chain.*.json
+sovereignty-chain.*.json.sig
+*.baton.cache
+
+# CI / local download cache
+cache/
+downloads/
+.iso-cache/
+
+# Python / Node (if you ever add a linter formatter)
+__pycache__/
+node_modules/
+*.pyc
+
+# OS thumbnails
+.DS_Store
+Thumbs.db

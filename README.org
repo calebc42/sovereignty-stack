@@ -1,0 +1,90 @@
+:PROPERTIES:
+:ID:       419a89d6-eafc-41c8-9b67-26498a750db1
+:type:     
+:tags:
+:archived: f
+:modified: [2025-09-13 Sat 15:07]
+:END:
+
+#+TITLE: Readme
+#+AUTHOR: Caleb Christensen
+#+DESCRIPTION: 
+#+FILETAGS:
+
+
+# Sovereignty Stack – reproducible lab notebook
+
+**Turning a consumer laptop into a tamper-evident, user-controlled platform, one automated step at a time.**
+
+[![CI sanity-check](https://github.com/YOURUSER/sovereignty-stack/actions/workflows/ci.yml/badge.svg)](https://github.com/YOURUSER/sovereignty-stack/actions)
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+
+## 30-second pitch
+While flipping burgers I audit firmware hashes, script every command, and track 150+ metrics in JSON.  
+This repo proves I can **automate boring work, document it, and ship on a schedule**—exactly what RevOps teams need.
+
+## Repo map
+#+begin_src bash
+tree -I '*~|#*#|.#*|*.tmp|*.temp|.DS_Store' ./
+#+end_src
+
+#+RESULTS:
+| ./  |                  |                             |       |
+| ├── | CHANGELOG.org    |                             |       |
+| ├── | docs             |                             |       |
+| │   | └──              | drafts                      |       |
+| │   | ├──              | 01-dom0.org                 |       |
+| │   | ├──              | 02-uefi.org                 |       |
+| │   | ├──              | 03-hypervisor.org           |       |
+| │   | ├──              | 04-crypto.org               |       |
+| │   | ├──              | 05-boot-integrity.org       |       |
+| │   | ├──              | 06-disk-audit.org           |       |
+| │   | ├──              | 06-telemetry.org            |       |
+| │   | ├──              | 07-disk-audit.org           |       |
+| │   | ├──              | 08-iommu.org                |       |
+| │   | ├──              | 09-ME-HECI-trace.org        |       |
+| │   | ├──              | 10-embedded-controller.org  |       |
+| │   | ├──              | 11-PD-controller.org        |       |
+| │   | └──              | 12-battery.org              |       |
+| ├── | executable       |                             |       |
+| │   | └──              | 01-debian-artefact-download |       |
+| ├── | index.org        |                             |       |
+| ├── | lib              |                             |       |
+| ├── | LICENSE          |                             |       |
+| ├── | pedagogical      |                             |       |
+| │   | └──              | 01-debian-artefact-download |       |
+| ├── | README.org       |                             |       |
+| ├── | schema           |                             |       |
+| │   | └──              | baton-v1.json               |       |
+| ├── | scripts          |                             |       |
+| │   | └──              | preflight.sh                |       |
+| └── | templates        |                             |       |
+| └── | start-step       |                             |       |
+| ├── | checks.yml       |                             |       |
+| ├── | EXIT.lst         |                             |       |
+| ├── | README.org.stub  |                             |       |
+| ├── | rollback.sh.stub |                             |       |
+| └── | run.sh.stub      |                             |       |
+|     |                  |                             |       |
+| 12  | directories,     | 24                          | files |
+
+| Path                 | Purpose                                                                        |
+|----------------------+--------------------------------------------------------------------------------|
+| `tutorials/`         | copy-paste, line-by-line explanations (learning track)                         |
+| `lab-notebooks/`     | idempotent scripts + CI verification (automation track)                        |
+| `lib/`               | shared bash / PowerShell helpers                                               |
+| `schema/`            | JSON schema for baton files (machine-readable audit trail)                     |
+| `templates/`         | boiler-plate for new steps (README.org.stub, run.sh.stub, EXIT.lst)            |
+| `.github/workflows/` | CI jobs: shellcheck, PSScriptAnalyzer, ISO hash guard, tutorial-vs-script diff |
+|                      |                                                                                |
+
+## Quick start (readers)
+1. open [step 01 tutorial](./tutorials/01-debian-artefact-download/README.org)
+2. follow line-by-line OR run `lab-notebooks/01/run.sh`
+3. both paths produce **bit-identical** `sovereignty-chain.01.json`
+
+## Quick start (contributors)
+#+begin_src bash
+cp -r templates/step-starter stubs/XX-name
+# fill stubs, tick EXIT.lst, push PR
+#+end_src

@@ -1,0 +1,122 @@
+:PROPERTIES:
+:ID:       f26c589e-828a-4ada-9708-38e04e91fa9a
+:publish:  t
+:type:     homepage
+:archived: f
+:modified: [2025-09-12 Fri 18:42]
+:END:
+
+#+FILETAGS: :publish:
+#+TITLE: Project Overview
+#+SUBTITLE: Reclaiming Control in a Vendor-Locked Ecosystem
+#+AUTHOR: Caleb Christensen
+#+DESCRIPTION: the project's philosophy, goals, and roadmap. This is for the reader who wants the 30,000-foot view.
+
+* Executive Summary
+This experiment explores increasing user control over a consumer laptop, through selecting a hypervisor, reconfiguring the boot chain, and establishing a minimal, inspectable security boundary between the vendor firmware and user-controlled code. Using an Open-Source Operating System, isolating the untrusted firmware from everything above the hypervisor to establish a verifiable root of control to be measured.
+
+* Introduction
+This project addresses a specific technical challenge: reconciling platform security models designed for cryptographic integrity attestation with the user’s growing concern to mitigate risks such as telemetry, opaque update mechanisms, and vendor-imposed obsolescence through inspection, modification, and control of the physical hardware.
+
+Consider a modern vehicle’s Engine Control Unit (ECU) where the firmware is cryptographically signed by the manufacturer and verified at ignition. While the owner can perform mechanical maintenance—replacing fluids, filters, or spark plugs—the ECU’s operational logic remains sealed. Unauthorized firmware modifications trigger failsafes or disable core functionality. This design prioritizes system integrity over user modification.
+
+A laptop operates under a similar, but more consequential, constraint. Like the ECU, its firmware is often locked by mechanisms such as Intel Boot Guard, which uses physical fuses to verify cryptographic signatures before execution. However, unlike the ECU, a general-purpose computer has a much greater attack surface and impact of compromise from processing and storing a vastly wider range of sensitive user data; credentials, communications, financial records, creative work. In modern computing, the integrity and inspectability of the hardware's foundational code is a growing critical security concern. When the firmware layer is immutable and unauditable, the entire software stack inherits its trust boundary, regardless of the operating system’s openness or patch status.
+
+This isn't just a philosophical problem; the practical consequence is in exclusion. The user cannot replace or audit the firmware, even when the vendor ceases support. This creates a persistent attack surface. A compromised or outdated firmware image can subvert the OS, survive reinstalls, and evade userspace detection. Any attempt to install an open, auditable alternative like Coreboot would brick the machine, turning a functional laptop into an inert slab of silicon and plastic.
+
+This log is an exploration of my process for engineering an intervention: after the untrusted vendor firmware completes hardware initialization, we load a Type-1 hypervisor that orchestrates direct control of the CPU, memory, and I/O. Now, trust is not assumed, it is established at the moment of successful handoff. The hypervisor’s integrity depends entirely on its ability to preempt and isolate the firmware before it can influence higher layers. A claim I will falsify by checking whether the IOMMU actually remaps DMA after the hand-off. Once the hardware control is demonstrated, the hypervisor becomes the new root of enforcement through a minimal, user-controlled layer where policies for isolation, measurement, and access can be defined and monitored for verification.
+
+This is not a circumvention of security, but a reorientation to the locus of control. We accept the firmware’s role as an untrusted loader and architect a verified transition to a transparent execution environment. The goal is measurable control: when you cannot replace the foundation, you build a verified checkpoint at its boundary — reclaiming sovereignty one abstraction layer at a time.
+
+A successful Sovereignty Stack must be;
+#+begin_example
+[ Hardware ]
+|
+[ Vendor Firmware ] ← Cryptographically attested, immutable, unauditable
+| (Untrusted loader; executes first)
+|
+[ Type-1 Hypervisor ] ← Seizes control; establishes verified execution boundary
+| (Trust established upon successful hardware takeover)
+|
+[ Dom0: Debian ] ← Sovereign host, fully managed, minimal attack surface
+|_________________
+|                 |
+[ DomU: Browser ] [ DomU: Work VM ] ← Contained, monitored, policy-enforced
+#+end_example
+
+* Project Goals
+The default configuration of modern laptops grants the OEM a degree of control that is inconsistent with traditional notions of hardware ownership. Even after payment, control remains with the Original Equipment Manufacturer (OEM). Firmware is cryptographically sealed. Telemetry is embedded. “End of support” means forced obsolescence — not for the hardware, but for the orginal transaction agreement and your right to use your property securely.
+
+This project defines what true ownership looks like in technical terms. The Sovereignty Stack is proven with six measurable properties that, when satisfied, transform a consumer laptop from a black-box appliance into a sovereign computing platform.
+
+Each property answers a simple question: What must be true for me to trust this machine with my data, my work, and my autonomy?
+
+
+** Properties of Sovereign Control
+
+*** P1 — Confidentiality of User Data at Rest
+Your files must remain unreadable to anyone — including the OEM — without your explicit consent (via passphrase). OEMs routinely include recovery mechanisms, escrow keys, or backdoor partitions. These violate the principle that you — not the vendor — are the sole custodian of your data. If the OEM can bypass your encryption, it is not encryption — it is DRM.
+
+This property is satisfied only when every LUKS keyslot is passphrase-derived and no OEM recovery mechanism exists in the storage hierarchy.
+
+→ Verification: [[file:04-crypto.org][Storage Confidentiality]] (draft)
+
+*** P2 — Integrity of the Boot Chain is Established
+The hypervisor — the first software layer you control — must be bit-for-bit reproducible from open-source sources and cryptographically verified before execution. If you cannot verify that the code running beneath your OS is what you intended to run, you inherit every vulnerability, backdoor, or telemetry hook embedded by the build system. Reproducible builds are the most direct method for a user to independently verify the integrity of a binary
+
+The hash of the loaded hypervisor blob GRUB loads must match the some one that Debian signed.
+
+→ Verification: [[file:05-boot-integrity.org][Boot-Chain Integrity]] (draft)
+
+*** P3 — Verifying No Outbound Traffic to Known OEM Telemetry Endpoints.
+Once your OS takes control of the network interface, no packets may be sent to known OEM telemetry endpoints — not during boot, not during idle, not ever. Many OEMs embed persistent telemetry in firmware, drivers, or microcode (e.g., Intel ME, Lenovo Vantage services). These channels operate below the OS and often survive reinstalls. If your machine phones home without your knowledge, it is not yours — it is a remote sensor.
+
+A 24-hour packet capture, taken from an external span port, must show zero frames destined for known OEM telemetry IP ranges.
+
+→ Verification: [[file:06-telemetry.org][Telemetry Measurement]] (draft)
+
+*** P4 — No Hidden Persistent Storage Writable by the OEM
+Every writable sector on the drive must be under user control — no hidden areas via Host Protected Area, Device Configuration Overlay, or vendor namespaces. OEMs routinely reserve hidden storage for “recovery,” diagnostics, or logging — areas that survive OS reinstalls and are invisible to the user. If the OEM can write to hidden sectors, they can store telemetry, backdoors, or persistence mechanisms. True ownership means every byte is visible and controlled.
+
+HPA and DCO must be removed or verified inactive. Visible partitions must account for ≥99% of the native drive capacity. On NVMe, all namespaces must be user-visible and accounted for. 
+
+→ Verification:  [[file:07-disk-audit.org][Disk-Map Audit]] (draft)
+
+*** P5 — Device Isolation via IOMMU
+Every PCI device must be isolated in its own IOMMU group, preventing DMA-based attacks between peripherals. Without IOMMU isolation, a compromised USB controller, NIC, or GPU can read or write arbitrary memory — including hypervisor pages. This breaks the security model of virtualization entirely. Device passthrough is not a feature — it is a necessity for containment.
+
+No IOMMU group may contain more than one endpoint device. High-risk devices (network, storage, USB) must be individually isolated.
+
+→ Verification: [[file:09-iommu.org][PCIe Isolation]] (draft)
+
+* Next Steps
+These are not arbitrary checkboxes. They are the minimum viable specification for a machine that respects its owner.
+
+Each property is a line in the sand. Cross one, and ownership is compromised.
+
+Each property will be tested, documented, and — where possible — automated. Failures will be analyzed. Workarounds will be published. Successes will be reproducible.
+
+Because in 2025, ownership is not assumed.
+
+It is proven.
+
+* Index
+The articles in this series document the procedures required to build a system that satisfies the sovereignty properties defined above. Presented in logical sequence, they serve as a practical demonstration of achieving measurable control over consumer hardware, from establishing a verified host to configuring hardware isolation.
+| Step | Note                                          | Status    | Last Modified |
+|------+-----------------------------------------------+-----------+---------------|
+|   01 | [[file:01-dom0.org][Building and Securing a Host OS]]               | published | 2025-09-11    |
+|   02 | [[file:02-uefi.org][Analyzing and Modifying the Firmware]]          | *draft*   |               |
+|   03 | [[./03-hypervisor.org][Installing and Configuring the Xen Hypervisor]] | *draft*   | —             |
+|   04 | [[file:04-crypto.org][Storage Confidentiality]]                       | *draft*   |               |
+|   05 | [[file:05-boot-integrity.org][Boot-Chain Integrity]]                          | *draft*   |               |
+|   06 | [[file:06-telemetry.org][Telemetry Measurement]]                         | *draft*   | —             |
+|   07 | [[file:07-disk-audit.org][Disk-Map Audit]]                                | *draft*   |               |
+|   09 | [[file:09-iommu.org][PCIe Isolation]]                                | published |               |
+
+* Appendix
+** [[/home/calebc42/coppermind/resources/gpg.org][Cryptography with Gnu Privacy Guard]]
+** [[/home/calebc42/coppermind/resources/dropbear-initramfs.org][Remote LUKS Unlock with Dropbear]]
+
+* Reference
+- [[file:99-reference.org][Materials, Glossary, Command Cheatsheet]]
+- Source repo: https://github.com/calebc42/sovereignty-stack

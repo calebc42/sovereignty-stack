@@ -1,0 +1,8 @@
+# <step>/<sub>: <what> – <time>
+# 50-char max, lowercase, present tense
+# Example: 01/iso: add SHA-512 verification – 25m
+
+# Body (wrap at 72):
+# - why not just what
+# - link to issue/discussion
+# - metric if any (bytes, seconds, hash)

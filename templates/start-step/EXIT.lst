@@ -1,0 +1,7 @@
+□ README.org stub renamed to README.org
+□ run.sh starts with #!/usr/bin/env bash + set -euo pipefail
+□ run.sh calls baton::load previous step
+□ run.sh ends with baton::save && baton::verify
+□ rollback.sh exits 0 even if nothing to undo
+□ CI job copied into ../.github/workflows/ci.yml and passes on push
+□ Time logged in issue #1 (hours + any blockers)
