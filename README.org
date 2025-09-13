@@ -6,16 +6,15 @@
 :modified: [2025-09-13 Sat 15:07]
 :END:
 
-#+title: Sovereignty Stack – reproducible lab notebook
+#+title: Sovereignty Stack
 #+author: Caleb Christensen
 #+description: Turning a consumer laptop into a tamper-evident, user-controlled platform, one automated step at a time.
 
 * 30-second pitch
-While flipping burgers I audit firmware hashes, script every command, and track 150+ metrics in JSON.
-This repo proves I can =automate boring work, document it, and ship on a schedule=—exactly what RevOps teams need.
+In order to learn best practices, I audit firmware hashes, script every command, and track 150+ metrics in JSON.
+This repo proves I can **automate boring work, document it, and ship on a schedule**, exactly what RevOps teams need.
 
 * Badge
-Badge
 [[https://github.com/calebc42/sovereignty-stack/actions/workflows/ci.yml][file:https://github.com/calebc42/sovereignty-stack/actions/workflows/ci.yml/badge.svg]]
 [[https://opensource.org/licenses/ISC][https://img.shields.io/badge/License-ISC-blue.svg]]
 
