@@ -1,9 +1,28 @@
 ---
 schema_version: 1
 steps:
-  - slug: debian-host
-    tutorial: tutorials/debian-host/README.org
-    notebook: lab-notebooks/debian-host/run.sh
-    baton:  sovereignty-chain.debian-host.json
-  - slug: uefi-audit
+  - slug: debian-download
+    description: "Download Debian installation media"
+    requires: []
+    produces:
+      - "debian-*.iso"
+      - "SHA512SUMS"
+      - "SHA512SUMS.sign"
+    verification:
+      - file_exists: "debian-*.iso"
+      - file_size_min: 600000000   # 600 MB
+      - file_exists: "SHA512SUMS"
+      - file_exists: "SHA512SUMS.sign"
+    next_steps:
+      - gpg-verify-debian
 
+  - slug: gpg-verify-debian
+    description: "Verify Debian ISO authenticity with GPG"
+    requires: ["debian-download"]
+    produces: ["sovereignty-chain.gpg-verify-debian.json"]
+    optional_flags: ["--no-gpg"]
+    verification:
+      - json_field: "gpg_verified"
+        expected: true
+    next_steps:
+      - prepare-bootdrive

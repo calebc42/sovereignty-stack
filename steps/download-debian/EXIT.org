@@ -1,0 +1,20 @@
+:PROPERTIES:
+:ID:       487ab61b-e837-414b-9944-415b41c6ceb4
+:type:     
+:tags:
+:archived: f
+:modified: [2025-09-13 Sat 21:06]
+:END:
+
+#+TITLE: Exit
+#+AUTHOR: Caleb Christensen
+#+DESCRIPTION: 
+#+FILETAGS:
+
+
+* TODO README.org present
+* TODO run.sh executable & shellcheck-clean
+* TODO run.ps1 executable & PSScriptAnalyzer-clean
+* TODO both produce identical sovereignty-chain.debian-download.json
+** TODO json contains matching sha256 for ISO
+* TODO rollback scripts remove ISO + SUMS + baton

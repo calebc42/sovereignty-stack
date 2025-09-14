@@ -1,0 +1,259 @@
+:PROPERTIES:
+:ID:       708edf7d-a8dd-4b89-a9eb-9d266d5bc49e
+:ROAM_REFS: /resources/sovereignty-stack/download-debian
+:type:     
+:tags:
+:archived: f
+:modified: [2025-09-13 Sat 20:09]
+:END:
+
+#+TITLE: Download Debian Installation Media
+#+SUBTITLE: Obtaining Files to Create a Bootable Installer
+#+AUTHOR: Caleb Christensen
+#+DATE: [2025-01-14 Tue]
+#+FILETAGS: :sovereignty:tutorial:publish:
+#+OPTIONS: toc:2 num:nil
+
+* What This Step Accomplishes
+This procedure downloads three files from Debian's official repository:
+- A Debian installer ISO image
+- SHA512 checksums for verification
+- A GPG signature file to verify the checksums
+
+These files will be used in subsequent steps to create a bootable USB drive and install Debian on target hardware.
+
+* Why This Matters
+Every security guarantee in the Sovereignty Stack depends on starting with authentic, unmodified software. By downloading directly from Debian's official servers and obtaining cryptographic verification files, you establish a chain of custody that can be verified in the next steps.
+
+The Debian project provides these verification mechanisms because even official mirrors can be compromised. Trust requires verification, not assumption.
+
+* Prerequisites
+- Windows 10/11 with PowerShell 5.1+
+- Approximately 1GB free disk space
+- Internet connection
+
+Verify PowerShell version:
+#+begin_src powershell
+$PSVersionTable.PSVersion
+#+end_src
+
+Expected output: Version 5.1.x or higher
+
+* Procedure
+
+** Step 1: Create Working Directory
+#+begin_src powershell
+New-Item -Path "$HOME\Desktop\sovereignty" -ItemType Directory -Force
+Set-Location "$HOME\Desktop\sovereignty"
+#+end_src
+
+This creates a dedicated folder for all downloaded files.
+
+** Step 2: Download Required Files
+
+*** Method A: Automated Download (Recommended)
+This script automatically identifies and downloads the current stable release:
+
+#+begin_src powershell
+# Fetch current stable release information
+$BaseUrl = "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd"
+$IsoName = (Invoke-WebRequest -Uri "$BaseUrl/" -UseBasicParsing).Content | 
+    Select-String -Pattern 'debian-[0-9.]*-amd64-netinst\.iso' | 
+    Select-Object -First 1 | 
+    ForEach-Object { $_.Matches[0].Value }
+
+# Download installer and verification files
+Write-Host "Downloading $IsoName..."
+Invoke-WebRequest -Uri "$BaseUrl/$IsoName" -OutFile $IsoName
+
+Write-Host "Downloading checksums..."
+Invoke-WebRequest -Uri "$BaseUrl/SHA512SUMS" -OutFile "SHA512SUMS"
+
+Write-Host "Downloading signature..."
+Invoke-WebRequest -Uri "$BaseUrl/SHA512SUMS.sign" -OutFile "SHA512SUMS.sign"
+#+end_src
+
+*** Method B: Manual URL Entry
+If you prefer to verify URLs yourself:
+
+1. Navigate to: https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/
+2. Locate the netinst ISO file (format: debian-[version]-amd64-netinst.iso)
+3. Copy the URLs for the ISO, SHA512SUMS, and SHA512SUMS.sign files
+
+#+begin_export html
+<div class="command-builder">
+  <p><strong>Paste the URLs you copied:</strong></p>
+  
+  <div class="input-group">
+    <label for="isoURL">ISO file URL:</label>
+    <input type="text" id="isoURL" class="dynamic-input" data-placeholder="__ISOURL__" 
+           placeholder="Example: https://cdimage.debian.org/.../debian-XX.X-amd64-netinst.iso">
+  </div>
+  
+  <div class="input-group">
+    <label for="checksumURL">SHA512SUMS URL:</label>
+    <input type="text" id="checksumURL" class="dynamic-input" data-placeholder="__CHECKSUMURL__" 
+           placeholder="Example: https://cdimage.debian.org/.../SHA512SUMS">
+  </div>
+  
+  <div class="input-group">
+    <label for="sigURL">SHA512SUMS.sign URL:</label>
+    <input type="text" id="sigURL" class="dynamic-input" data-placeholder="__SIGURL__" 
+           placeholder="Example: https://cdimage.debian.org/.../SHA512SUMS.sign">
+  </div>
+  
+  <button onclick="buildDownloadCommand()">Generate Download Commands</button>
+  <pre id="command-output"></pre>
+</div>
+
+<script>
+function buildDownloadCommand() {
+    const iso = document.getElementById('isoURL').value;
+    const checksum = document.getElementById('checksumURL').value;
+    const sig = document.getElementById('sigURL').value;
+    
+    // Extract filename from URL
+    const isoFilename = iso.split('/').pop();
+    
+    const command = `# Download Debian installer files
+Invoke-WebRequest -Uri "${iso}" -OutFile "${isoFilename}"
+Invoke-WebRequest -Uri "${checksum}" -OutFile "SHA512SUMS"
+Invoke-WebRequest -Uri "${sig}" -OutFile "SHA512SUMS.sign"`;
+    
+    document.getElementById('command-output').textContent = command;
+    
+    // Save URLs and filename for verification step
+    localStorage.setItem('sovereignty-debian-urls', JSON.stringify({
+        iso: iso,
+        checksum: checksum,
+        sig: sig,
+        filename: isoFilename
+    }));
+}
+
+function markStepComplete(stepName) {
+    const progress = JSON.parse(localStorage.getItem('sovereignty-progress') || '{}');
+    
+    // Retrieve the saved URLs data
+    const urlData = JSON.parse(localStorage.getItem('sovereignty-debian-urls') || '{}');
+    const isoFile = urlData.filename || 'debian-[version]-amd64-netinst.iso';
+    
+    progress[stepName] = {
+        completed: true,
+        timestamp: new Date().toISOString(),
+        files: [isoFile, 'SHA512SUMS', 'SHA512SUMS.sign'],
+        manifest: 'download-manifest.json'
+    };
+    
+    localStorage.setItem('sovereignty-progress', JSON.stringify(progress));
+    
+    // Update UI
+    document.querySelector('.step-completion button').disabled = true;
+    document.querySelector('.step-completion button').textContent = '✓ Step Complete';
+}
+</script>
+#+end_export
+
+** Step 3: Verify Downloads Completed
+List downloaded files with sizes:
+
+#+begin_src powershell
+Get-ChildItem | Select-Object Name, @{N='Size(MB)';E={[math]::Round($_.Length/1MB,2)}}
+#+end_src
+
+Expected files:
+- debian-[version]-amd64-netinst.iso (typically 600-900 MB)
+- SHA512SUMS (approximately 1 KB)
+- SHA512SUMS.sign (approximately 1 KB)
+
+If any file is missing or significantly smaller than expected, the download failed and should be retried.
+
+** Step 4: Document Downloaded Files
+Create a record of what was downloaded for verification in subsequent steps:
+
+#+begin_src powershell
+# Get the ISO filename dynamically
+$IsoFile = (Get-ChildItem -Filter "debian-*.iso").Name
+
+# Calculate hash for future verification
+$IsoHash = (Get-FileHash -Algorithm SHA512 $IsoFile).Hash
+
+# Create documentation
+$manifest = @{
+    step = "download-debian"
+    timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+    files = @{
+        iso = $IsoFile
+        iso_hash = $IsoHash
+        checksum_file = "SHA512SUMS"
+        signature_file = "SHA512SUMS.sign"
+    }
+}
+
+# Save manifest
+$manifest | ConvertTo-Json -Depth 3 | Out-File "download-manifest.json" -Encoding UTF8
+Write-Host "Download documented in download-manifest.json" -ForegroundColor Green
+#+end_src
+
+This manifest file records what was downloaded and when, creating an audit trail for the installation process.
+
+* Verification
+At this stage, you have downloaded files but have not verified their authenticity. The files could be corrupted or tampered with. Verification occurs in the next step using GPG.
+
+The manifest file created above contains:
+- Timestamp of download
+- Exact filename of the ISO
+- SHA512 hash of the downloaded ISO
+- References to the verification files
+
+* Troubleshooting
+
+** PowerShell Execution Policy
+If scripts are blocked:
+#+begin_src powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+#+end_src
+
+** Failed Downloads
+- Verify internet connectivity
+- Check available disk space (need ~1GB free)
+- Try alternative mirror: https://www.debian.org/CD/http-ftp/
+
+** PowerShell Version Too Old
+Update PowerShell through Windows Settings → Apps → Optional Features → Add Feature → PowerShell 7
+
+* Next Steps
+With the files downloaded, proceed to:
+1. [[../gpg-setup/][Install and configure GPG]] - Required for signature verification
+2. [[../verify-integrity/][Verify download integrity]] - Confirm files are authentic and unmodified
+
+The downloaded files remain unverified until GPG verification is complete. Do not proceed to create bootable media until verification succeeds.
+
+#+begin_export html
+<div class="step-completion">
+  <button onclick="markStepComplete('download-debian')">Mark Step Complete</button>
+</div>
+
+<script>
+function markStepComplete(stepName) {
+    const progress = JSON.parse(localStorage.getItem('sovereignty-progress') || '{}');
+    
+    // Retrieve from the correct localStorage key
+    const urlData = JSON.parse(localStorage.getItem('sovereignty-debian-urls') || '{}');
+    const isoFile = urlData.filename || 'debian-[version]-amd64-netinst.iso';
+    
+    progress[stepName] = {
+        completed: true,
+        timestamp: new Date().toISOString(),
+        files: [isoFile, 'SHA512SUMS', 'SHA512SUMS.sign'],
+        manifest: 'download-manifest.json'
+    };
+    
+    localStorage.setItem('sovereignty-progress', JSON.stringify(progress));
+    
+    // Update UI
+    document.querySelector('.step-completion button').disabled = true;
+    document.querySelector('.step-completion button').textContent = '✓ Step Complete';
+}
+</script>
+#+end_export

@@ -6,90 +6,141 @@
 :modified: [2025-09-13 Sat 15:07]
 :END:
 
-#+title: Sovereignty Stack
-#+author: Caleb Christensen
-#+description: Turning a consumer laptop into a tamper-evident, user-controlled platform, one automated step at a time.
+#+TITLE: Sovereignty Stack
+#+AUTHOR: Caleb Christensen
+#+DESCRIPTION: Reclaiming hardware control through reproducible, auditable steps
 
-* 30-second pitch
-In order to learn best practices, I audit firmware hashes, script every command, and track 150+ metrics in JSON.
-This repo proves I can **automate boring work, document it, and ship on a schedule**, exactly what RevOps teams need.
+* What This Is
+A systematic approach to establishing user control over vendor-locked hardware through hypervisor isolation. Each step is documented, scripted, and verified.
 
-* Badge
 [[https://github.com/calebc42/sovereignty-stack/actions/workflows/ci.yml][file:https://github.com/calebc42/sovereignty-stack/actions/workflows/ci.yml/badge.svg]]
-[[https://opensource.org/licenses/ISC][https://img.shields.io/badge/License-ISC-blue.svg]]
+[[https://opensource.org/licenses/ISC][file:https://img.shields.io/badge/License-ISC-blue.svg]]
 
-* Repo map
-#+begin_src bash
-tree -I '*~|#*#|.#*|*.tmp|*.temp|.DS_Store' ./
+* The Problem
+Modern laptops are cryptographically locked by vendors. Even after purchase, you don't truly own your hardware - the firmware is sealed, telemetry is embedded, and obsolescence is forced through "end of support."
+
+* The Solution
+Build a verified security boundary between untrusted vendor firmware and user-controlled software using a Type-1 hypervisor. This creates a "Sovereignty Stack" where trust is established through verification, not assumption.
+
+#+begin_example
+[ Hardware ]
+    |
+[ Vendor Firmware ] ← Untrusted, unauditable
+    |
+[ Xen Hypervisor ] ← Verified handoff point
+    |
+[ Debian Dom0 ] ← Sovereign host under user control
+    |
+[ Guest VMs ] ← Isolated workloads
+#+end_example
+
+* Repository Structure
+#+begin_src
+sovereignty-stack/
+├── steps/                    # Atomic, reproducible procedures
+│   ├── 01-debian-download/   
+│   │   ├── README.org       # Human-readable tutorial
+│   │   ├── run.ps1          # Automated script (Windows)
+│   │   ├── run.sh           # Automated script (Linux)
+│   │   ├── verify.sh        # Verification tests
+│   │   └── rollback.sh      # Undo operations
+│   └── .../
+├── docs/                     # Draft articles and research
+├── lib/                      # Shared functions and helpers
+├── schema/                   # JSON schema for state tracking
+└── templates/                # Boilerplate for new steps
 #+end_src
 
-#+RESULTS:
-| ./  |                  |                             |       |
-| ├── | catalog.yml      |                             |       |
-| ├── | CHANGELOG.org    |                             |       |
-| ├── | docs             |                             |       |
-| │   | └──              | drafts                      |       |
-| │   | ├──              | 01-dom0.org                 |       |
-| │   | ├──              | 02-uefi.org                 |       |
-| │   | ├──              | 03-hypervisor.org           |       |
-| │   | ├──              | 04-crypto.org               |       |
-| │   | ├──              | 05-boot-integrity.org       |       |
-| │   | ├──              | 06-disk-audit.org           |       |
-| │   | ├──              | 06-telemetry.org            |       |
-| │   | ├──              | 07-disk-audit.org           |       |
-| │   | ├──              | 08-iommu.org                |       |
-| │   | ├──              | 09-ME-HECI-trace.org        |       |
-| │   | ├──              | 10-embedded-controller.org  |       |
-| │   | ├──              | 11-PD-controller.org        |       |
-| │   | └──              | 12-battery.org              |       |
-| ├── | executable       |                             |       |
-| │   | └──              | 01-debian-artefact-download |       |
-| ├── | index.org        |                             |       |
-| ├── | lib              |                             |       |
-| ├── | LICENSE          |                             |       |
-| ├── | pedagogical      |                             |       |
-| │   | └──              | 01-debian-artefact-download |       |
-| ├── | README.org       |                             |       |
-| ├── | schema           |                             |       |
-| │   | └──              | baton-v1.json               |       |
-| ├── | scripts          |                             |       |
-| │   | └──              | preflight.sh                |       |
-| └── | templates        |                             |       |
-| └── | start-step       |                             |       |
-| ├── | checks.yml       |                             |       |
-| ├── | EXIT.lst         |                             |       |
-| ├── | README.org.stub  |                             |       |
-| ├── | rollback.sh.stub |                             |       |
-| └── | run.sh.stub      |                             |       |
-|     |                  |                             |       |
-| 12  | directories,     | 25                          | files |
+* Five Properties of Sovereignty
+Each property is measurable and verifiable:
 
-| Path                    | Purpose                                                               |
-|-------------------------+-----------------------------------------------------------------------|
-| =pedagogical=           | copy-paste, line-by-line explanations (learning track)                |
-| =executable=            | idempotent scripts + CI verification (automation track)               |
-| =lib=                   | shared bash / PowerShell helpers                                      |
-| =schema=                | JSON schema for baton files (machine-readable audit trail)            |
-| =templates=             | boiler-plate for new steps (README.org.stub, run.sh.stub, EXIT.lst)   |
-| =.github/workflows=     | CI jobs: shellcheck, PSScriptAnalyzer, ISO hash guard, diff           |
+| Property | Description          | Verification                                    |
+|----------+----------------------+-------------------------------------------------|
+| P1       | Data Confidentiality | All storage encrypted with user-controlled keys |
+| P2       | Boot Integrity       | Hypervisor hash matches reproducible build      |
+| P3       | No Telemetry         | Zero packets to OEM endpoints in 24hr capture   |
+| P4       | Full Storage Control | No hidden partitions or OEM-writable areas      |
+| P5       | Device Isolation     | Every PCI device in separate IOMMU group        |
 
-* Quick start (readers)
-1. Open step 1: [[file:tutorials/debian-host/README.org][debian-host tutorial]]
-2. Follow line-by-line *OR* run =lab-notebooks/debian-host/run.sh=
-3. Both paths produce *bit-identical* =sovereignty-chain.debian-host.json=
+* For Readers: Two Paths
 
-* Quick start (contributors)
+** Path 1: Learn by Doing (Recommended)
+Start with [[file:steps/01-debian-download/README.org][Step 01: Download Debian]] and follow each command manually. Dynamic input fields help you build commands with your specific values. Every command is explained.
+
+** Path 2: Automated Execution
+Run the scripts directly:
 #+begin_src bash
-cp -r templates/step-starter stubs/STEP-NAME
-# fill stubs, tick EXIT.lst, push PR
+cd steps/01-debian-download
+./run.ps1  # On Windows
+# or
+./run.sh   # On Linux
 #+end_src
 
-* Daily build evidence
-See [[https://github.com/calebc42/sovereignty-stack/actions][Actions tab]] – every push re-runs the entire chain on a fresh VM.
+Both paths produce identical results, tracked in =sovereignty-chain.*.json= files.
 
-* Public learning log
-[[https://github.com/calebc42/sovereignty-stack/discussions/categories/learning-log][GitHub Discussions › Learning Log]] – one entry per day, time-stamped.
+* State Tracking: The Baton System
+Each step produces a JSON "baton" file documenting:
+- What was accomplished
+- File hashes for verification  
+- Environment details
+- Timestamp
+
+Example:
+#+begin_src json
+{
+  "step": "01-debian-download",
+  "timestamp": "2025-01-14T10:00:00Z",
+  "artifacts": {
+    "debian-13.1.0-amd64-netinst.iso": {
+      "sha512": "873e9aa09a913660...",
+      "size": 661651456
+    }
+  }
+}
+#+end_src
+
+This creates an auditable chain of evidence from bare metal to working system.
+
+* Current Status
+
+** Completed Steps
+- [X] [[file:steps/01-debian-download/][01 - Download Debian]] - Fetch and verify installer
+- [X] [[file:steps/09-iommu/][09 - IOMMU Verification]] - Confirm device isolation
+
+** In Progress
+- [ ] [[file:docs/drafts/02-uefi.org][02 - UEFI Analysis]] - Examine firmware behavior
+- [ ] [[file:docs/drafts/03-hypervisor.org][03 - Xen Installation]] - Deploy Type-1 hypervisor
+
+** Planned
+See [[file:index.org][Project Index]] for complete roadmap.
+
+* Verification & CI
+Every push triggers automated verification:
+- Script syntax checking (shellcheck, PSScriptAnalyzer)
+- Baton file schema validation
+- ISO hash verification
+- Step dependency checking
+
+[[https://github.com/calebc42/sovereignty-stack/actions][View CI Results →]]
+
+* Learning in Public
+This project documents both successes and failures. Follow along:
+- [[https://github.com/calebc42/sovereignty-stack/discussions][Discussions]] - Questions and learning log
+- [[https://github.com/calebc42/sovereignty-stack/issues][Issues]] - Bugs and improvements
+
+* Why This Matters
+This isn't just about one laptop. It's about:
+- **Ownership**: Actually controlling hardware you paid for
+- **Transparency**: Every step documented and reproducible
+- **Education**: Learning through systematic investigation
+- **Trust**: Verification over assumption
 
 * License
-ISC – do whatever you want, just don’t blame me.
+ISC - Use this however you want, but I'm not responsible if you brick your laptop.
 
+* Acknowledgments
+Built on the shoulders of giants: Debian, Xen, Coreboot, and countless security researchers who refuse to accept "because we said so" as an answer.
+
+---
+/In 2025, ownership is not assumed. It is proven./
+#+end_src

@@ -1,0 +1,61 @@
+name: download-debian
+on:
+  push:
+    paths: ['steps/download-debian/**','.github/workflows/download-debian.yml']
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: lint bash
+        run: shellcheck steps/download-debian/run.sh
+      - name: execute bash
+        run: |
+          cd steps/download-debian
+          ./run.sh
+          test -f sovereignty-chain.debian-host.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: baton-download-debian-linux
+          path: steps/download-debian/sovereignty-chain.debian-host.json
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+      - name: lint ps1
+        shell: pwsh
+        run: Invoke-ScriptAnalyzer -Path steps/download-debian/run.ps1
+      - name: execute ps1
+        shell: pwsh
+        run: |
+          cd steps/download-debian
+          ./run.ps1
+          Test-Path sovereignty-chain.debian-host.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: baton-download-debian-windows
+          path: steps/download-debian/sovereignty-chain.debian-host.json
+
+  cross-check:
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: baton-download-debian-linux
+          path: linux/
+      - uses: actions/download-artifact@v4
+        with:
+          name: baton-download-debian-windows
+          path: win/
+      - name: compare baton hashes
+        run: |
+          linux=$(jq -r '.artefacts[].sha256' linux/sovereignty-chain.debian-host.json)
+          win=$(jq -r '.artefacts[].sha256' win/sovereignty-chain.debian-host.json)
+          [[ "$linux" == "$win" ]] || { echo "Cross-platform baton mismatch!"; exit 1; }
+          echo "✅ Cross-platform reproducible"

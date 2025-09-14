@@ -102,9 +102,17 @@ It is proven.
 
 * Index
 The articles in this series document the procedures required to build a system that satisfies the sovereignty properties defined above. Presented in logical sequence, they serve as a practical demonstration of achieving measurable control over consumer hardware, from establishing a verified host to configuring hardware isolation.
+** The First Step
+The journey to satisfying the properties of sovereign control begins with the most fundamental action: establishing a trusted, inspectable, and user-controlled operating environment on the bare metal. This foundational layer, known in virtualization as Domain 0 (Dom0), will become the seat of governance for the entire system. From here, we will control, monitor, and isolate all other software.
+→ [[file:01-dom0.org][Building and Securing a Host OS]]
+** Second Step
+
+
+* Index
+
 | Step | Note                                          | Status    | Last Modified |
 |------+-----------------------------------------------+-----------+---------------|
-|   01 | [[file:01-dom0.org][Building and Securing a Host OS]]               | published | 2025-09-11    |
+|   01 |               | published | 2025-09-11    |
 |   02 | [[file:02-uefi.org][Analyzing and Modifying the Firmware]]          | *draft*   |               |
 |   03 | [[./03-hypervisor.org][Installing and Configuring the Xen Hypervisor]] | *draft*   | —             |
 |   04 | [[file:04-crypto.org][Storage Confidentiality]]                       | *draft*   |               |
@@ -232,4 +240,4 @@ The articles in this series document the procedures required to build a system t
 | 6–7   | Publish **hiring-packet.pdf** (one-page) in `docs/` → link in repo header                                                                | Apply to **10 "Revenue Operations Analyst"** roles with PDF attached                                                                         | Post PDF on LinkedIn *"Portfolio piece: how I audit supply-chains with JSON and bash — no magic, all public."*                       |    |
 | 8–9   | **Dev-log entry #3**: screenshot of first CI failure + how you fixed it → shows problem-solving                                          | Add **"Process improvement"** bullet: *"Reduced verification time from 120 min to 7 min via shell automation"*                               | Submit failed-build screenshot to r/devops → traffic spike                                                                           |    |
 | 10–12 | Finish tutorial track **step-01** (only 5 real commands) → push, green badge stays                                                       | Cold-email **3 local tech companies**:*"I’ll automate your CRM data hygiene for free in exchange for a reference letter."* Include repo link | Add repo to Hacker News *"Show HN"* (even unfinished) — story is *"unemployed guy documents firmware audit while working fast-food"* |    |
-| 13–14 | **Dev-log entry #4**: what you learned about reproducibility vs fast-food SOPs (funny, relatable)                                        | Apply to **5 more jobs** using new bullet: *"Built reproducible compliance pipeline; 100 % commands open-source, CI-verified."*              | Ask first 3 external visitors to open GitHub issues for typos → now you have *contributors*                                          |  |
+| 13–14 | **Dev-log entry #4**: what you learned about reproducibility vs fast-food SOPs (funny, relatable)                                        | Apply to **5 more jobs** using new bullet: *"Built reproducible compliance pipeline; 100 % commands open-source, CI-verified."*              | Ask first 3 external visitors to open GitHub issues for typos → now you have *contributors*                                          |   |
