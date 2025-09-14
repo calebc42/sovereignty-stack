@@ -281,7 +281,7 @@ main() {
 }
 
 # ---------- dependency checks ----------
-for cmd in curl sha256sum sha512sum; do
+for cmd in curl jq sha256sum sha512sum; do
     if ! command -v "$cmd" >/dev/null 2>&1; then
         error "Required command not found: $cmd"
     fi

@@ -1,28 +1,146 @@
----
 schema_version: 1
 steps:
   - slug: debian-download
-    description: "Download Debian installation media"
+    description: "Download Debian installation media and verification files."
     requires: []
     produces:
       - "debian-*.iso"
       - "SHA512SUMS"
       - "SHA512SUMS.sign"
+      - "state.debian-download.json"
     verification:
-      - file_exists: "debian-*.iso"
-      - file_size_min: 600000000   # 600 MB
-      - file_exists: "SHA512SUMS"
-      - file_exists: "SHA512SUMS.sign"
-    next_steps:
-      - gpg-verify-debian
+      - file_exists: "state.debian-download.json"
+      - json_field: "iso_hash_computed"
+        in_file: "state.debian-download.json"
+        expected: true
 
   - slug: gpg-verify-debian
-    description: "Verify Debian ISO authenticity with GPG"
+    description: "Verify Debian ISO authenticity using GPG signatures."
     requires: ["debian-download"]
-    produces: ["sovereignty-chain.gpg-verify-debian.json"]
+    produces: ["state.gpg-verify.json"]
     optional_flags: ["--no-gpg"]
     verification:
+      - file_exists: "state.gpg-verify.json"
       - json_field: "gpg_verified"
+        in_file: "state.gpg-verify.json"
         expected: true
-    next_steps:
-      - prepare-bootdrive
+
+  - slug: uefi-initial-config
+    description: "Manual: Enable VT-x and disable Secure Boot in UEFI."
+    requires: []
+    produces: ["state.uefi-configured.json"]
+    optional_flags: ["--skip-uefi"]
+    verification:
+      - file_exists: "state.uefi-configured.json"
+
+  - slug: wsl2-debian-install
+    description: "Install the Debian distribution for WSL2 on the workstation."
+    requires: []
+    produces: ["state.wsl2-installed.json"]
+    verification:
+      - script: "wsl --list --verbose"
+        stdout_contains: "Debian"
+
+  - slug: usbipd-setup
+    description: "Install usbipd-win and attach a USB drive to WSL2."
+    requires: ["wsl2-debian-install"]
+    produces: ["state.usb-attached.json"]
+    verification:
+      - script: "wsl lsblk -d -o TRAN"
+        stdout_contains: "usb"
+
+  - slug: usb-write
+    description: "Write the verified Debian ISO to the attached USB drive."
+    requires: ["gpg-verify-debian", "usbipd-setup"]
+    produces: ["state.usb-written.json"]
+    verification:
+      - script: "./verify-usb-write.sh" # Script compares ISO hash with USB hash
+        exit_code: 0
+
+  - slug: os-inst
+    description: "Manual: Install Debian host (Dom0) with specific partitioning."
+    requires: ["usb-write", "uefi-initial-config"]
+    produces: ["state.os-installed.json"]
+    optional_flags: ["--skip-os-install"]
+    verification:
+      - file_exists: "state.os-installed.json"
+
+  - slug: server-init
+    description: "Perform first-boot configuration for networking and APT."
+    requires: ["os-installation-guide"]
+    produces: ["state.server-configured.json"]
+    verification:
+      - script: "ssh -i id_ed25519 user@host 'ping -c 1 deb.debian.org'"
+        exit_code: 0
+
+  - slug: ssh-config
+    description: "Configure secure, key-based SSH remote access."
+    requires: ["initial-server-config"]
+    produces: ["state.ssh-hardened.json"]
+    verification:
+      - script: "ssh -o PasswordAuthentication=no -i id_ed25519 user@host 'echo success'"
+        stdout_contains: "success"
+
+  - slug: hypervisor-install
+    description: "Install Xen and configure GRUB to boot it by default."
+    requires: ["ssh-hardening"]
+    produces: ["state.hypervisor-installed.json"]
+    verification:
+      - script: "ssh user@host 'sudo xl info'"
+        stdout_contains: "xen_version"
+
+  - slug: iommu-verification
+    description: "Verify that IOMMU (VT-d) is active in Xen and Dom0."
+    requires: ["hypervisor-install"]
+    produces: ["state.iommu-verified.json"]
+    verification:
+      - script: "ssh user@host 'sudo dmesg | grep \"DMAR: IOMMU enabled\"'"
+        stdout_contains: "DMAR: IOMMU enabled"
+
+  - slug: guest-vm-creation
+    description: "Create a guest VM (DomU) and test PCI passthrough."
+    requires: ["iommu-verification"]
+    produces: ["state.guest-created.json"]
+    verification:
+      - script: "ssh user@host 'sudo xl console pci-test \"lspci\"'" # Simplified
+        stdout_contains: "Network controller" # Check for passed-through device
+
+  - slug: validate-p1-confidentiality
+    description: "Validate P1: Verify LUKS keyslots are passphrase-protected."
+    requires: ["os-installation-guide"]
+    produces: ["state.p1-validated.json"]
+    verification:
+      - script: "ssh user@host 'sudo cryptsetup luksDump /dev/nvme0n1p2 | jq -r .keyslots[].type | sort -u'"
+        stdout_is: "luks2"
+
+  - slug: validate-p2-boot-integrity
+    description: "Validate P2: Verify the on-disk Xen hypervisor hash."
+    requires: ["hypervisor-install"]
+    produces: ["state.p2-validated.json"]
+    verification:
+      - script: "ssh user@host 'sha256sum --check known-xen-hashes.txt'"
+        exit_code: 0
+
+  - slug: validate-p3-telemetry
+    description: "Validate P3: Monitor network for outbound OEM telemetry."
+    requires: ["initial-server-config"]
+    produces: ["state.p3-validated.json"]
+    ci_skip: true # This test is not suitable for automated CI
+    verification:
+      - manual_check: "24-hour packet capture shows 0 frames to known telemetry endpoints."
+
+  - slug: validate-p4-hidden-storage
+    description: "Validate P4: Audit disk for hidden OEM storage partitions."
+    requires: ["os-installation-guide"]
+    produces: ["state.p4-validated.json"]
+    verification:
+      - script: "ssh user@host './validate_hidden_storage.sh'"
+        exit_code: 0
+
+  - slug: validate-p5-isolation
+    description: "Validate P5: Formally audit IOMMU group isolation."
+    requires: ["guest-vm-creation"]
+    produces: ["state.p5-validated.json"]
+    verification:
+      - script: "ssh user@host './validate_iommu.sh'"
+        exit_code: 0

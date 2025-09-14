@@ -1,0 +1,82 @@
+name: gpg-verify-debian
+on:
+  push:
+    paths: ['steps/gpg-verify-debian/**','.github/workflows/gpg-verify-debian.yml']
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: lint bash
+        run: shellcheck steps/gpg-verify-debian/run.sh
+      - name: download previous baton
+        uses: actions/download-artifact@v4
+        with:
+          name: baton-download-debian-linux
+          path: steps/gpg-verify-debian/
+      - name: execute bash (with GPG)
+        run: |
+          cd steps/gpg-verify-debian
+          ./run.sh
+          test -f sovereignty-chain.gpg-verify-debian.json
+          jq -e '.gpg_verified == true' sovereignty-chain.gpg-verify-debian.json
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+      - name: lint ps1
+        shell: pwsh
+        run: Invoke-ScriptAnalyzer -Path steps/gpg-verify-debian/run.ps1
+      - name: download previous baton
+        uses: actions/download-artifact@v4
+        with:
+          name: baton-download-debian-windows
+          path: steps/gpg-verify-debian/
+      - name: execute ps1 (with GPG)
+        shell: pwsh
+        run: |
+          cd steps/gpg-verify-debian
+          ./run.ps1
+          Test-Path sovereignty-chain.gpg-verify-debian.json
+          (Get-Content sovereignty-chain.gpg-verify-debian.json | ConvertFrom-Json).gpg_verified | Should -BeTrue
+
+  offline-skip:
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: download previous baton
+        uses: actions/download-artifact@v4
+        with:
+          name: baton-download-debian-linux
+          path: steps/gpg-verify-debian/
+      - name: test --no-gpg flag
+        run: |
+          cd steps/gpg-verify-debian
+          ./run.sh --no-gpg
+          test -f sovereignty-chain.gpg-verify-debian.json
+          jq -e '.gpg_verified == false' sovereignty-chain.gpg-verify-debian.json
+
+  cross-check:
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: baton-download-debian-linux
+          path: linux/
+      - uses: actions/download-artifact@v4
+        with:
+          name: baton-download-debian-windows
+          path: win/
+      - name: compare ISO hash (post-verification)
+        run: |
+          linux_hash=$(jq -r '.artefacts[].sha256' linux/sovereignty-chain.debian-host.json)
+          win_hash=$(jq -r '.artefacts[].sha256' win/sovereignty-chain.debian-host.json)
+          [[ "$linux_hash" == "$win_hash" ]] || { echo "Post-GPG hash mismatch!"; exit 1; }
+          echo "✅ ISO hash identical after GPG verification"

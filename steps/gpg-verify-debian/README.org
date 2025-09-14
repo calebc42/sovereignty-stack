@@ -1,0 +1,76 @@
+:PROPERTIES:
+:ID:       5407d93e-8d1a-4001-993c-16680ff8ed00
+:type:     
+:tags:
+:archived: f
+:modified: [2025-09-13 Sat 22:22]
+:END:
+
+#+TITLE: Using GNU Privacy Guard to authenticate the ISO
+#+DESCRIPTION: Verify Debian ISO authenticity using GPG
+#+FILETAGS: :sovereignty:verification:
+
+* Purpose
+Cryptographically verify that the downloaded Debian ISO and checksums are authentic and unmodified using GPG signatures.
+
+* Dependencies
+- Prerequisites: Completed ~debian-download~ step
+- Requires: ~gpg~ (or use ~--no-gpg~ to skip)
+- Input: ~sovereignty-chain.debian-download.json~
+- Output: ~sovereignty-chain.gpg-verify-debian.json~ with ~gpg_verified~ status
+
+* Quick Run
+** Linux/macOS
+#+begin_src bash
+./run.sh
+#+end_src
+
+To skip GPG verification (not recommended):
+#+begin_src bash
+./run.sh --no-gpg
+#+end_src
+** Windows
+#+begin_src powershell
+./run.ps1          # verifies with GPG
+#+end_src
+
+To skip GPG verification (not recommended):
+#+begin_src powershell
+./run.ps1 -NoGpg   # skip verification
+#+end_src
+
+* What This Does
+1. Loads the previous baton file from debian-download
+2. Imports official Debian CD signing keys from keyserver
+3. Verifies SHA512SUMS.sign against SHA512SUMS
+4. Updates the baton with verification status
+5. Exits with error if verification fails (unless --no-gpg used)
+
+* Manual Verification
+If you prefer to verify manually, follow the commands below.  
+The automated script adds resume logic, fallback keyservers, and baton updates, but **every core command you see here appears identically** in [[file:run.sh][run.sh]] and [[file:run.ps1][run.ps1]].  
+Read the source to see the full production logic.
+
+#+begin_src bash
+# Import Debian signing keys
+gpg --keyserver keyserver.ubuntu.com --recv-keys \
+    988021A964E6EA7D \
+    DA87E80D6294BE9B \
+    42468F4009EA8AC3
+
+# Verify signature
+gpg --verify SHA512SUMS.sign SHA512SUMS
+#+end_src
+
+* Expected Output
+- ✓ GPG keys imported
+- ✓ Good signature from Debian CD signing key
+- ✓ Updated baton with gpg_verified: true
+
+* Troubleshooting
+- "GPG not installed": Install with `sudo apt-get install gnupg`
+- "Cannot import keys": Try alternative keyserver with `--keyserver keys.openpgp.org`
+- "Bad signature": The files may be corrupted, re-download them
+
+* Next Steps
+→ [[file:../usb-write/README.org][usb-write]]: Write verified ISO to USB drive

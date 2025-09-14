@@ -1,0 +1,23 @@
+:PROPERTIES:
+:ID:       8e729a4e-63b8-4ef1-961e-64e5589bbbdd
+:type:     
+:tags:
+:archived: f
+:modified: [2025-09-13 Sat 20:04]
+:END:
+
+#+TITLE: Index Template
+#+AUTHOR: Caleb Christensen
+#+DESCRIPTION: 
+#+FILETAGS:
+
+
+Key sections:
+
+Introduction/context
+What you'll accomplish
+Prerequisites check
+Step-by-step walkthrough
+Dynamic command builders
+Verification
+Next steps

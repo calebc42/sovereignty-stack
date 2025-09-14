@@ -1,0 +1,29 @@
+:PROPERTIES:
+:ID:       ed7dd22e-b10e-4fba-9535-6bb61b1e5311
+:type:     
+:tags:
+:archived: f
+:modified: [2025-09-13 Sat 22:29]
+:END:
+
+#+TITLE: Exit Criteria
+#+AUTHOR: Caleb Christensen
+#+DESCRIPTION: 
+#+FILETAGS:
+
+
+* TODO README.org present
+
+* TODO run.sh / run.ps1 executable & lint-clean
+
+* TODO accepts --no-gpg flag
+
+* TODO loads sovereignty-chain.debian-download.json
+
+* TODO imports Debian CD keys (hard-coded fingerprints)
+
+* TODO gpg --verify passes (or exits 0 with --no-gpg)
+
+* TODO writes sovereignty-chain.gpg-verify-debian.json
+
+* TODO json contains gpg_verified:true (or false if --no-gpg)

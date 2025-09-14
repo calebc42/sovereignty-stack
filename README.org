@@ -102,10 +102,16 @@ Example:
 This creates an auditable chain of evidence from bare metal to working system.
 
 * Current Status
+** Verified Properties
+- [ ] P1: Data Confidentiality
+- [ ] P2: Boot Integrity  
+- [ ] P3: No Telemetry
+- [ ] P4: Full Storage Control
+- [X] P5: Device Isolation
 
 ** Completed Steps
-- [X] [[file:steps/01-debian-download/][01 - Download Debian]] - Fetch and verify installer
-- [X] [[file:steps/09-iommu/][09 - IOMMU Verification]] - Confirm device isolation
+- [X] [[file:steps/download-debian/][Download Debian]] - Fetch and verify installer
+- [X] [[file:steps/iommu-isolation/][IOMMU Verification and Device Isolation]] - Confirm device isolation
 
 ** In Progress
 - [ ] [[file:docs/drafts/02-uefi.org][02 - UEFI Analysis]] - Examine firmware behavior
@@ -143,4 +149,3 @@ Built on the shoulders of giants: Debian, Xen, Coreboot, and countless security 
 
 ---
 /In 2025, ownership is not assumed. It is proven./
-#+end_src

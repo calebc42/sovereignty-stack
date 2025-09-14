@@ -1,0 +1,182 @@
+:PROPERTIES:
+:ID:       bbbc6080-b176-49de-b773-14599cf2b3d8
+:ROAM_REFS: /resources/sovereignty-stack/gpg-verify-debian
+:type:
+:tags:
+:archived: f
+:modified: [2025-09-13 Sat 22:31]
+:END:
+
+#+TITLE: Verify Debian ISO Authenticity
+#+SUBTITLE: Proving the Integrity of Your Foundation
+#+AUTHOR: Caleb Christensen
+#+DATE: [2025-09-13 Sat]
+#+FILETAGS: :sovereignty:tutorial:publish:
+#+OPTIONS: toc:2 num:nil
+
+* Why This Matters
+In the last step, we downloaded the Debian installer and verified its integrity, proving the file wasn't corrupted. Now, we must verify its **authenticity**.
+
+Authenticity answers a more important question: "Is this file *genuinely* from the Debian project, or is it a malicious fake?" We will use Gnu Privacy Guard (GPG) to check the digital signature provided by Debian. This cryptographic proof is the cornerstone of our trust in the software. Without it, every subsequent step is built on an unverified foundation.
+
+* Part 1: Install Gnu Privacy Guard (GPG)
+Before we can verify anything, we need the tool for the job. GPG is the open-source standard for cryptographic signing and verification.
+- Gnu Privacy Guard :: A free and open-source implementation of the OpenPGP standard, which is based on the original PGP (Pretty Good Privacy) software. A foundational tool that enables the use of digital signatures and public-key cryptography to ensure the integrity and authenticity of files
+
+** Step 1: Find the Official GPG Package
+We will use the Windows Package Manager (=winget=) to install GPG. First, it's critical to ensure we install the legitimate package and not a malicious look-alike, a practice known as **typo squatting**.
+
+1. Search for the package by its proper name in PowerShell:
+   #+begin_src powershell
+   winget search "Gnu Privacy Guard"
+   #+end_src
+
+2. You should see a result like `GnuPG.GnuPG`. Now, inspect its details to verify its source:
+    #+begin_src powershell
+    winget show GnuPG.GnuPG
+    #+end_src
+
+3. **Vet the package source.** In the output, locate the =Id=, =Publisher=, =HomepageURL=. Do not click it directly. Instead, use an independent search engine to find the official GnuPG project website. Compare the URL from your search with the one in the =winget= details. If they match, you can proceed.
+
+** Step 2: Install GPG
+Once you have verified the package is legitimate, install it:
+#+begin_src powershell
+winget install --id GnuPG.GnuPG --exact
+#+end_src
+#+begin_note_
+This time, since we used a package manager, we will not need to verify the integrity of the download using the hashes, as this is done automatically for us, and you have already authenticated the package in the previous step.
+#+end_note
+
+** Step 3: Add GPG to the System PATH
+*** Path A: Automated
+Many command-line tools, including GPG, need to be manually added to the system's PATH variable so PowerShell can find them.
+
+1. Close and reopen PowerShell as an **Administrator** @@html:<kbd>Win</kbd>+<kbd>x</kbd>, then <kbd>a</kbd>@@
+
+2. Run this script. It will automatically find the `gpg.exe` file and add its directory to your system's PATH.
+    #+begin_src powershell
+    $GpgExe = Get-ChildItem -Path "C:\Program Files*" -Filter "gpg.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($GpgExe) {
+        $GpgDir = Split-Path -Parent $GpgExe.FullName
+        $CurrentPath = [Environment]::GetEnvironmentVariable("PATH", [EnvironmentVariableTarget]::Machine)
+        if (-not ($CurrentPath -like "*$GpgDir*")) {
+            [Environment]::SetEnvironmentVariable("PATH", $CurrentPath + ";" + $GpgDir, [EnvironmentVariableTarget]::Machine)
+            Write-Host "✅ GPG added to PATH: $GpgDir" -ForegroundColor Green
+            Write-Host "Please close and reopen this terminal for the change to take effect."
+        } else {
+            Write-Host "GPG is already in the system PATH." -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "❌ GPG installation not found." -ForegroundColor Red
+    }
+    #+end_src
+
+*** Option B: Manual
+If you prefer to verify manually, follow the commands below.  
+
+We need to locate where the installer downloaded the application to:
+#+begin_src powershell
+Get-ChildItem -Path "C:\Program Files*" -Filter "gpg.exe" -Recurse -ErrorAction SilentlyContinue
+#+end_src
+
+The =-ErrorAction SilentlyContinue= part just tells PowerShell not to show you any "Access Denied" errors it might encounter when trying to look inside protected system folders.
+
+The result should list a Directory location, such as:
+
+:     Directory: C:\Program Files (x86)\gnupg\bin
+:
+: Mode     LastWriteTime        Length    Name
+: ----     -------------        ------    ----
+: -a---    9/13/2025  10:23 AM  123456   gpg.exe
+
+
+
+Copy the Directory path (in this case: =C:\Program Files (x86)\gnupg\bin=) for the next step, adding the Directory path to the system PATH:
+
+#+begin_src powershell
+[System.Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";" + "__GPGPATH__", [EnvironmentVariableTarget]::Machine)
+#+end_src
+
+#+begin_export html
+<p>
+  <label for="gpgPath"><b>GPG Path:</b></label><br>
+  <input type="text" id="gpgPath" name="gpgPath" class="dynamic-input" data-placeholder="__GPGPATH__" size="60" placeholder="Insert text to replace __GPGPATH__">
+</p>
+#+end_export
+
+3. Close and reopen your PowerShell terminal one last time. Confirm the installation by checking the version:
+    #+begin_src powershell
+    gpg --version
+    #+end_src
+
+* Part 2: Verify the Debian Signature
+With GPG installed, we can now perform the cryptographic verification.
+
+** Step 1: Import Debian's Public Keys
+First, we need to teach GPG about Debian's official signing keys. These keys are the public record that allows us to verify their signatures. You should always cross-reference these key IDs on [[https://www.debian.org/CD/verify][Debian's official website]].
+
+In the directory with your downloaded Debian files
+#+begin_src powershell
+gpg --keyserver keyserver.ubuntu.com --recv-keys 988021A964E6EA7D DA87E80D6294BE9B 42468F4009EA8AC3
+#+end_src
+#+begin_src powershell
+gpg --keyserver keyserver.ubuntu.com --recv-keys 988021A964E6EA7D DA87E80D6294BE9B 42468F4009EA8AC3
+#+end_src
+You'll see an output such as:
+#+begin_example
+gpg: C:\\Users\\caleb\\AppData\\Roaming\\gnupg\\trustdb.gpg: trustdb created
+gpg: key 42468F4009EA8AC3: public key "Debian Testing CDs Automatic Signing Key <debian-cd@lists.debian.org>" imported
+gpg: key DA87E80D6294BE9B: public key "Debian CD signing key <debian-cd@lists.debian.org>" imported
+gpg: key 988021A964E6EA7D: public key "Debian CD signing key <debian-cd@lists.debian.org>" imported
+gpg: Total number processed: 3
+gpg:               imported: 3
+#+end_example
+
+** Step 2: Verify the Signature File
+Now, use the imported keys to check if the signature on `SHA512SUMS.sign` is valid for the `SHA512SUMS` file.
+
+#+begin_src powershell
+gpg --verify SHA512SUMS.sign SHA512SUMS
+#+end_src
+
+You should see output containing the line:
+#+begin_example
+#+begin_example
+gpg: Signature made 09/06/25 15:54:29 Mountain Daylight Time
+gpg:                using RSA key DF9B9C49EAA9298432589D76DA87E80D6294BE9B
+gpg: Good signature from "Debian CD signing key <debian-cd@lists.debian.org>" [unknown]
+gpg: WARNING: This key is not certified with a trusted signature!
+gpg:          There is no indication that the signature belongs to the owner.
+Primary key fingerprint: DF9B 9C49 EAA9 2984 3258  9D76 DA87 E80D 6294 BE9B
+#+end_example
+
+This warning exists to protect you from “key substitution” attacks — where an attacker replaces a legitimate key on the keyserver with their own. By forcing you to verify the fingerprint against an official source (like debian.org over HTTPS), GPG ensures you’re not trusting a malicious imposter — even if their signature is mathematically valid.
+
+** Step 3: Verify the Key Fingerprints
+The final step is to confirm that the key GPG used for verification is the same one listed on Debian's website. This protects against a sophisticated attacker who might have compromised a keyserver.
+
+1. Display the fingerprints of the keys you imported:
+   #+begin_src powershell
+   gpg --fingerprint 988021A964E6EA7D DA87E80D6294BE9B 42468F4009EA8AC3
+   #+end_src
+   #+begin_example
+   
+   #+end_example
+   #+begin_note
+   The =[unknown]== is GPG correctly stating that while the signature is mathematically valid, you haven't personally marked this key as "trusted" in your local keychain. This is the correct and expected outcome for this step.
+
+   You can reference the [[file:gpg.org][Cryptography with GNU Privacy Guard]] to update this information.
+   #+end_note    
+
+2. Compare the output with the fingerprints published on these official Debian pages:
+    - [[https://www.debian.org/CD/verify][Debian CD Verification Guide]]
+    - [[https://ftp-master.debian.org/keys.html][Debian FTP Master Keys]]
+
+If the fingerprints match, you have successfully proven that your Debian ISO is authentic and unmodified. You have established the second link in your chain of trust.
+
+* What's Next?
+With a cryptographically verified installer, we are now ready to write it to a physical device.
+- [[../05-usb-media-write/index.org][Write the Verified ISO to a USB Drive]]
+** Going Deeper
+Want to understand the Web of Trust, sign Debian’s key, or use GPG as your SSH agent?
+→ [[file:../_appendix/gpg-web-of-trust.org][GPG Web of Trust Deep-Dive]]

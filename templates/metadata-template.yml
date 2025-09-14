@@ -1,0 +1,10 @@
+name: debian-iso-download
+title: "Download Debian Installation Media"
+requires: []
+produces: 
+  - debian-13.1.0-amd64-netinst.iso
+  - SHA512SUMS
+  - SHA512SUMS.sign
+verification:
+  - file_exists: debian-13.1.0-amd64-netinst.iso
+  - file_exists: SHA512SUMS

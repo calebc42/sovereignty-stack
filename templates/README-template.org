@@ -1,0 +1,22 @@
+:PROPERTIES:
+:ID:       5ab7eab2-b6ae-41d9-ad74-033cac1d0911
+:type:     
+:tags:
+:archived: f
+:modified: [2025-09-13 Sat 20:05]
+:END:
+
+#+TITLE: Readme Template
+#+AUTHOR: Caleb Christensen
+#+DESCRIPTION: 
+#+FILETAGS:
+
+
+Key sections:
+
+Purpose (one line)
+Inputs/dependencies
+Outputs/artifacts
+Usage (how to run)
+Verification
+Rollback
