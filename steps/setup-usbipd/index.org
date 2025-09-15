@@ -1,0 +1,64 @@
+:PROPERTIES:
+:ID:       <your-generated-uuid>
+:archived: f
+:modified: [2025-09-14 Sun]
+:END:
+
+#+TITLE: Connect a USB Drive to WSL2
+#+SUBTITLE: Building a Hardware Airlock with usbipd-win
+#+AUTHOR: Caleb Christensen
+#+DATE: [2025-09-14 Sun]
+#+FILETAGS: :sovereignty:tutorial:usb:
+#+OPTIONS: toc:2 num:nil
+
+* Why This Matters
+Our Debian "workshop" inside WSL2 is, by design, a sealed environment. It can't see or touch the physical hardware connected to your computer, like a USB drive. To work on our drive, we need to build a secure **airlock** that can safely pass the device from the outside world (Windows) into our sealed lab (Debian).
+
+This airlock is a tool called **`usbipd-win`**. It allows us to grant our Debian environment direct, low-level access to the USB drive, as if it were physically plugged into a Linux machine. This connection is the final prerequisite before we can etch our verified operating system onto the media.
+
+* Step-by-Step: Engaging the Airlock
+
+** 1. Install the Airlock Machinery**
+First, we'll install the `usbipd-win` tool itself using the `winget` package manager. This requires an **Administrator PowerShell** terminal (<kbd>Win</kbd>+<kbd>X</kbd>, then <kbd>A</kbd>).
+#+begin_src powershell
+winget install usbipd
+#+end_src
+After the install, close and reopen the Administrator terminal to ensure the command is ready to use.
+
+** 2. Identify Your Target Device**
+Plug in your target USB drive. Now, run the `usbipd` scanner to list all USB devices connected to Windows. We need to find the unique address, or `BUSID`, of our drive.
+#+begin_src powershell
+usbipd list
+#+end_src
+Look for your device in the list, often labeled as a "USB Mass Storage Device." If you're unsure, just unplug it, run the command again to see what's gone, and plug it back in to confirm. Note its `BUSID`.
+
+** 3. Prepare and Open the Airlock**
+With the target `BUSID` identified, we issue two commands.
+1.  **`bind`:** This prepares the device on the Windows side, readying it for the passthrough.
+2.  **`attach`:** This command opens the airlock and officially connects the device to your WSL environment.
+
+Replace `1-10` in the example below with your drive's actual `BUSID`.
+#+begin_src powershell
+# Replace 1-10 with your USB drive's actual BUSID
+$BusID = "1-10"
+
+usbipd bind --busid $BusID
+usbipd attach --wsl --busid $BusID
+#+end_src
+
+** 4. Confirm Arrival Inside the Lab**
+The final, crucial step is to look inside our Debian lab and confirm the USB drive is securely on the workbench.
+1. Open your Debian terminal.
+   #+begin_src powershell
+   wsl
+   #+end_src
+2. Use the `lsblk` command to list the connected storage hardware.
+   #+begin_src bash
+   lsblk -d -o NAME,SIZE,MODEL,TRAN,RM
+   #+end_src
+
+You will see your USB drive appear as a new device, such as `sdi` or `sdj`. Confirm that its `SIZE` is correct and `RM` (Removable) is set to `1`. This confirms the airlock worked perfectly.
+
+* What's Next?
+The connection is stable. The raw material—our USB drive—is now accessible from within our Debian workshop. In the next step, we'll finally use the `dd` tool to precisely etch the verified Debian operating system onto it.
+- → [[../usb-write/index.org][Write the Verified ISO to the USB Drive]]

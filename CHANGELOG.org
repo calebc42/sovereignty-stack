@@ -8,7 +8,25 @@
 
 #+TITLE: Changelog
 #+AUTHOR: Caleb Christensen
-#+DESCRIPTION: 
+#+DESCRIPTION: All notable changes to this project will be documented in this file.
 #+FILETAGS:
 
+* Unreleased
 
+** Added
+- [TODO: Describe new feature]
+
+** Changed
+- [TODO: Describe change in existing functionality]
+
+** Fixed
+- [TODO: Describe bug fix]
+
+* 0.0.1 - 2025-09-15
+
+** Added
+- Initial release of the Sovereignty Stack.
+- Created `download-debian` step to fetch the Debian installer and verification files.
+- Implemented `gpg-verify-debian` step to cryptographically verify the installer's authenticity.
+- Established the "Baton" system for creating an auditable chain of evidence.
+- Set up CI pipeline to lint and test scripts on push.

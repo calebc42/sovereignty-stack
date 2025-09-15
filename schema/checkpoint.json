@@ -1,4 +1,4 @@
-File name: sovereignty-chain.${step-name}.json
+File name: ${step-name}.checkpoint.json
 Location: same directory as the script; never edited by hand.
 Schema (extensible):
 {

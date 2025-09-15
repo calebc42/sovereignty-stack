@@ -1,6 +1,6 @@
-# <step>/<sub>: <what> – <time>
+# <step>/<file>: <what> – <time>
 # 50-char max, lowercase, present tense
-# Example: 01/iso: add SHA-512 verification – 25m
+# Example: download-host/run.sh: add SHA-512 verification – 25m
 
 # Body (wrap at 72):
 # - why not just what

@@ -8,6 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y curl jq shellcheck
       - name: lint bash
         run: shellcheck steps/download-debian/run.sh
       - name: execute bash
@@ -17,7 +19,7 @@ jobs:
           test -f sovereignty-chain.debian-host.json
       - uses: actions/upload-artifact@v4
         with:
-          name: baton-download-debian-linux
+          name: sovereignty-chain-download-debian-linux
           path: steps/download-debian/sovereignty-chain.debian-host.json
 
   windows:
@@ -38,7 +40,7 @@ jobs:
           Test-Path sovereignty-chain.debian-host.json
       - uses: actions/upload-artifact@v4
         with:
-          name: baton-download-debian-windows
+          name: sovereignty-chain-download-debian-windows
           path: steps/download-debian/sovereignty-chain.debian-host.json
 
   cross-check:
@@ -55,7 +57,7 @@ jobs:
           path: win/
       - name: compare baton hashes
         run: |
-          linux=$(jq -r '.artefacts[].sha256' linux/sovereignty-chain.debian-host.json)
-          win=$(jq -r '.artefacts[].sha256' win/sovereignty-chain.debian-host.json)
+          linux=$(jq -r '.artefacts[].sha256' linux/sovereignty-chain.download-debian.json)
+          win=$(jq -r '.artefacts[].sha256' win/sovereignty-chain.download-debian.json)
           [[ "$linux" == "$win" ]] || { echo "Cross-platform baton mismatch!"; exit 1; }
           echo "✅ Cross-platform reproducible"

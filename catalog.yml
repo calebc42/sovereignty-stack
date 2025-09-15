@@ -1,28 +1,28 @@
 schema_version: 1
 steps:
-  - slug: debian-download
+  - slug: download-host
     description: "Download Debian installation media and verification files."
     requires: []
     produces:
       - "debian-*.iso"
       - "SHA512SUMS"
       - "SHA512SUMS.sign"
-      - "state.debian-download.json"
+      - "download-host.state.json"
     verification:
-      - file_exists: "state.debian-download.json"
+      - file_exists: "download-host.state.json"
       - json_field: "iso_hash_computed"
-        in_file: "state.debian-download.json"
+        in_file: "download-host.state.json"
         expected: true
 
-  - slug: gpg-verify-debian
+  - slug: gpg-verify-host
     description: "Verify Debian ISO authenticity using GPG signatures."
-    requires: ["debian-download"]
-    produces: ["state.gpg-verify.json"]
+    requires: ["download-host"]
+    produces: ["gpg-verify-host.state.json"]
     optional_flags: ["--no-gpg"]
     verification:
-      - file_exists: "state.gpg-verify.json"
+      - file_exists: "gpg-verify-host.state.json"
       - json_field: "gpg_verified"
-        in_file: "state.gpg-verify.json"
+        in_file: "gpg-verify-host.state.json"
         expected: true
 
   - slug: uefi-initial-config

@@ -1,0 +1,11 @@
+# This file designates who is responsible for maintaining different parts of the repo.
+# When a pull request touches these files, the owners will be automatically requested for review.
+
+* @calebc42
+
+# Rules for specific steps
+/steps/download-debian/ @calebc42
+/steps/gpg-verify-debian/ @calebc42
+
+# Rules for CI/CD
+/.github/workflows/ @calebc42

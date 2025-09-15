@@ -1,13 +1,13 @@
 :PROPERTIES:
 :ID:       bbbc6080-b176-49de-b773-14599cf2b3d8
-:ROAM_REFS: /resources/sovereignty-stack/gpg-verify-debian
+:ROAM_REFS: /resources/sovereignty-stack/gpg-verify-host
 :type:
 :tags:
 :archived: f
 :modified: [2025-09-13 Sat 22:31]
 :END:
 
-#+TITLE: Verify Debian ISO Authenticity
+#+TITLE: Verify the Host Authenticity
 #+SUBTITLE: Proving the Integrity of Your Foundation
 #+AUTHOR: Caleb Christensen
 #+DATE: [2025-09-13 Sat]
@@ -176,7 +176,8 @@ If the fingerprints match, you have successfully proven that your Debian ISO is 
 
 * What's Next?
 With a cryptographically verified installer, we are now ready to write it to a physical device.
-- [[../05-usb-media-write/index.org][Write the Verified ISO to a USB Drive]]
+- [[../setup-wsl2/index.org]]
+
 ** Going Deeper
 Want to understand the Web of Trust, sign Debian’s key, or use GPG as your SSH agent?
 → [[file:../_appendix/gpg-web-of-trust.org][GPG Web of Trust Deep-Dive]]

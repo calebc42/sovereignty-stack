@@ -15,6 +15,9 @@ A systematic approach to establishing user control over vendor-locked hardware t
 
 [[https://github.com/calebc42/sovereignty-stack/actions/workflows/ci.yml][file:https://github.com/calebc42/sovereignty-stack/actions/workflows/ci.yml/badge.svg]]
 [[https://opensource.org/licenses/ISC][file:https://img.shields.io/badge/License-ISC-blue.svg]]
+[[https://www.repostatus.org/#wip][file:https://www.repostatus.org/badges/latest/wip.svg]]
+[[https://github.com/calebc42/sovereignty-stack/issues][file:https://img.shields.io/github/issues/calebc42/sovereignty-stack]]
+[[https://github.com/calebc42/sovereignty-stack/commits/main][file:https://img.shields.io/github/last-commit/calebc42/sovereignty-stack]]
 
 * The Problem
 Modern laptops are cryptographically locked by vendors. Even after purchase, you don't truly own your hardware - the firmware is sealed, telemetry is embedded, and obsolescence is forced through "end of support."
@@ -143,6 +146,7 @@ This isn't just about one laptop. It's about:
 
 * License
 ISC - Use this however you want, but I'm not responsible if you brick your laptop.
+*See the [[file:LICENSE][LICENSE]] file for details.*
 
 * Acknowledgments
 Built on the shoulders of giants: Debian, Xen, Coreboot, and countless security researchers who refuse to accept "because we said so" as an answer.

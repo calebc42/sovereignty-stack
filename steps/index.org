@@ -241,3 +241,43 @@ The journey to satisfying the properties of sovereign control begins with the mo
 | 8–9   | **Dev-log entry #3**: screenshot of first CI failure + how you fixed it → shows problem-solving                                          | Add **"Process improvement"** bullet: *"Reduced verification time from 120 min to 7 min via shell automation"*                               | Submit failed-build screenshot to r/devops → traffic spike                                                                           |    |
 | 10–12 | Finish tutorial track **step-01** (only 5 real commands) → push, green badge stays                                                       | Cold-email **3 local tech companies**:*"I’ll automate your CRM data hygiene for free in exchange for a reference letter."* Include repo link | Add repo to Hacker News *"Show HN"* (even unfinished) — story is *"unemployed guy documents firmware audit while working fast-food"* |    |
 | 13–14 | **Dev-log entry #4**: what you learned about reproducibility vs fast-food SOPs (funny, relatable)                                        | Apply to **5 more jobs** using new bullet: *"Built reproducible compliance pipeline; 100 % commands open-source, CI-verified."*              | Ask first 3 external visitors to open GitHub issues for typos → now you have *contributors*                                          |   |
+
+
+Gaps that still matter (and are easy to forget once you’re deep in the weeds)
+Supply-chain provenance: the Xen binary you boot is reproducible but not yet attested; you have no measured-boot quote to show the hash you compiled is the hash that ran.
+Firmware update story: you disabled UEFI capsules; how will you apply security patches without re-opening the attack surface?
+Physical access story: no TPM-sealed disk unlock → evil-maid can key-log the LUKS passphrase.
+Guest escape test: you showed passthrough works, but did you fuzz the Xen qemu-dm stub? A malicious guest NIC driver can still DMA into hypervisor memory if the IOMMU page tables are mis-programmed.
+Performance baseline: you disabled every power-saving feature; quantify the battery-life hit and provide a “sovereign / performance / battery” toggle so users can pick their trade-off.
+90-day public roadmap (copy-paste into repo)
+#+begin_example
+Road-map 2025-Q4 :post-its:
+:PROPERTIES:
+:ID:       90d-roadmap
+:END:
+** DONE [#A] Phase-0 MVP (public)  :measurable:
+[X] P1–P5 verified on Yoga 710-15IKB
+[X] reproducible Xen package + CI artifact
+[X] one-click probe script exits 0/1
+** TODO [#A] Measured boot + attestation  :funding-blocker:
+[-] Compile Xen with TBOOT/TXT support
+[-] Enable Intel TPM 2.0 fTPM (even if no discrete TPM header)
+[-] Extend PCR-17 with Xen hash, publish quote in release notes
+[-] Seal LUKS keyslot to PCR-17+18 (clevis-tpm2)
+Owner: @caleb Due: 2025-11-15
+** TODO [#B] Fuzz & harden PCI passthrough  :security:
+[-] Build Xen with CONFIG_MEM_SHARING=n, CONFIG_QEMU_TRADITIONAL=n
+[-] Run 24-h syzkaller against qemu-dm stub in Dom0
+[-] Document IOMMU page-size quirks (4 k vs 2 M) in wiki
+Owner: @caleb Due: 2025-12-01
+** TODO [#C] OTA firmware updates without OEM capsule  :ux:
+[-] Mirror Lenovo BIOS checksums, verify with GPG
+[-] Build coreboot tiny-payload that chain-loads OEM capsule
+[-] Publish “sovereign update” ISO that re-flashes only u-code + ME
+Owner: @caleb Due: 2025-12-15
+** TODO [#D] Community hardware matrix  :ecosystem:
+[-] Template probe script for ThinkPad T480 / Dell 7490
+[-] Accept pull-requests for new boards (must pass P1–P5)
+[-] Auto-publish dashboard to https://sovereignty-stack.org/matrix
+Owner: community Due: 2026-01-31
+#+end_example

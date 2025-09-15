@@ -1,0 +1,522 @@
+:PROPERTIES:
+:ID:       c25670f6-37de-4b96-b5c5-8b38f56f3924
+:type:     
+:tags:
+:archived: f
+:modified: [2025-09-15 Mon 02:05]
+:END:
+
+#+TITLE: Contributing to Sovereignty Stack
+#+AUTHOR: Caleb Christensen
+#+DESCRIPTION: How to contribute to the Sovereignty Stack project, including coding standards, commit guidelines, and the development process.
+#+FILETAGS:
+
+Welcome to the Sovereignty Stack project! We're excited that you're interested in contributing. This document is intended to be a living guide to help you get started. By participating in this project, you agree to abide by our code of conduct.
+
+* Table of Contents :TOC:
+
+
+* Code of Conduct
+This project and everyone participating in it is governed by the [TODO: Link to Code of Conduct - e.g., Contributor Covenant]. Please read it to understand the standards of behavior we expect.
+
+* How Can I Contribute?
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+** Reporting Bugs
+If you find a bug, please ensure the bug was not already reported by searching on GitHub under [[https://github.com/calebc42/sovereignty-stack/issues][Issues]]. If you're unable to find an open issue addressing the problem, [[https://github.com/calebc42/sovereignty-stack/issues/new?assignees=&labels=&template=bug-report.yml&title=%5BBUG%5D%3A+][open a new one]].
+
+** Suggesting Enhancements
+If you have an idea for an enhancement, please search the [[https://github.com/calebc42/sovereignty-stack/issues][issues]] to see if it has been discussed. If not, feel free to [[https://github.com/calebc42/sovereignty-stack/issues/new?assignees=&labels=&template=feature-request.yml&title=%5BFEAT%5D%3A+][open a new issue]] to start the discussion.
+
+** Pull Requests
+1. Fork the repository.
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
+3. Commit your changes (see [[#commit-message-style][Commit Message Style]]).
+4. Push to the branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request.
+
+* Getting Started: Development Setup
+To get your local environment set up for development, you'll need the following tools:
+- For Bash scripts: `shellcheck`
+- For PowerShell scripts: `PSScriptAnalyzer`
+- For JSON validation: `jq`
+- [TODO: Add any other system-level dependencies]
+
+** To install these on a Debian-based system:
+#+begin_src bash
+sudo apt-get update && sudo apt-get install -y shellcheck jq
+#+end_src
+
+** To install PSScriptAnalyzer:
+#+begin_src powershell
+Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+#+end_src
+
+After cloning the repo, run the preflight check to ensure your system is ready:
+#+begin_src bash
+./scripts/preflight.sh
+#+end_src
+
+* The Checkpoint System
+This project is built around a series of atomic, verifiable steps. Each step, when executed, produces a checkpoint JSON file (e.g., `download-host.checkpoint.json`).
+
+This serves as an audit record. It contains:
+- The exact action that was performed.
+- Cryptographic hashes of any files (artifacts) that were created or modified.
+- Environment details and a timestamp.
+
+Each subsequent script *must* load the checkpoint from the previous step to ensure the chain of trust is maintained. When contributing, ensure your scripts correctly generate and validate these baton files according to the official schema.
+
+** Checkpoint Schema 
+All checkpoint files must follow this JSON structure:
+#+begin_src json :tangle ./schema/checkpoint.json
+json{
+  "schema_version": 1,
+  "step": "step-name",
+  "step_number": 1,
+  "script_version": "1.0.0",
+  "created_at": "2024-01-01T12:00:00Z",
+  "hostname": "machine-name",
+  "previous_step": "previous-step",  // optional
+  "artifacts": {
+    "filename": {
+      "type": "file-type",
+      "sha256": "hash",
+      "sha512": "hash" | null,
+      "url": "source-url",
+      "version": "version",
+      "verified": true | false,
+      "checksum_file": "SHA512SUMS" | null,
+      "location": "/path/to/file",
+      "size_bytes": 1234567,
+      "size_human": "1.2M"
+    }
+  },
+  "metadata": {
+    // step-specific metadata
+  }
+}
+#+end_src
+
+*** Checkpoint Validation Order
+- Check file exists
+- Validate JSON structure
+- Check schema_version matches expected
+
+* Style Guide
+This section defines the coding standards and conventions for the CI pipeline scripts. All scripts (both bash and PowerShell) must follow these guidelines to ensure consistency, maintainability, and reliability.
+** Script Structure
+All scripts must follow this exact structure:
+*** Bash Scripts
+#+begin_src bash
+  bash#!/usr/bin/env bash
+  # SPDX-License-Identifier: ISC
+  set -euo pipefail
+
+  # ---------- metadata ----------
+  STEP="step-name"
+  STEP_NUMBER=1
+  SCRIPT_VERSION="1.0.0"
+  PREV_STEP="previous-step"  # omit if N/A
+  BASE_URL="https://..."     # omit if N/A
+
+  # ---------- constants ----------
+  CHECKPOINT_SCHEMA_VERSION=1
+  DEFAULT_CONNECT_TIMEOUT=30
+  # ... other constants
+
+  # ---------- global variables ----------
+  verbose=false
+  force_mode=false
+  dry_run=false
+
+  # ---------- common functions ----------
+  # (or source common library here)
+
+  # ---------- argument parsing ----------
+  parse_arguments() { ... }
+
+  # ---------- help ----------
+  show_help() { ... }
+
+  # ---------- checkpoint functions ----------
+  # ... checkpoint-specific functions
+
+  # ---------- utility functions ----------
+  # ... other utility functions
+
+  # ---------- main workflow ----------
+  main() { ... }
+
+  # ---------- execute ----------
+  parse_arguments "$@"
+  main
+  exit 0
+#+end_src
+
+*** PowerShell Scripts
+#+begin_src pwsh
+powershell#!/usr/bin/env pwsh
+# SPDX-License-Identifier: ISC
+#Requires -Version 5.1
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+# ---------- metadata ----------
+$STEP = "step-name"
+$STEP_NUMBER = 1
+$SCRIPT_VERSION = "1.0.0"
+$PREV_STEP = "previous-step"  # omit if N/A
+$BASE_URL = "https://..."     # omit if N/A
+
+# ---------- constants ----------
+$CHECKPOINT_SCHEMA_VERSION = 1
+$DEFAULT_CONNECT_TIMEOUT = 30
+# ... other constants
+
+# ---------- options ----------
+$script:Verbose = $false
+$script:ForceMode = $false
+$script:DryRun = $false
+
+# ---------- common functions ----------
+# (or Import-Module Common.psm1 here)
+
+# ---------- argument parsing ----------
+function Parse-Arguments { ... }
+
+# ---------- help ----------
+function Show-Help { ... }
+
+# ---------- checkpoint functions ----------
+# ... checkpoint-specific functions
+
+# ---------- utility functions ----------
+# ... other utility functions
+
+# ---------- main workflow ----------
+function Main { ... }
+
+# ---------- execute ----------
+Parse-Arguments -Args $args
+Main
+exit 0
+#+end_src
+
+** Idempotency
+Scripts must be idempotent where possible. This means a script can be run multiple times with the same inputs and will produce the same result without causing errors or unintended side effects. For example, if a file has already been downloaded, an idempotent script will simply verify its integrity instead of downloading it again.
+
+*** Example: Idempotent File Download
+This logic checks if the target file already exists and is valid before attempting to download it.
+
+Bash
+#+begin_src_
+# --- idempotency check ---
+if [[ -f "$ISO_FILE" ]] && _verify_checksum "$ISO_FILE"; then
+    log_success "ISO file '$ISO_FILE' already exists and is verified. Skipping download."
+else
+    log "Downloading ISO file..."
+    # ... download logic
+fi
+#+end_src
+
+PowerShell
+#+begin_src 
+# --- Idempotency Check ---
+if ((Test-Path $IsoFile) -and (Test-Checksum -FilePath $IsoFile)) {
+    Write-LogSuccess "ISO file '$IsoFile' already exists and is verified. Skipping download."
+}
+else {
+    Write-Log "Downloading ISO file..."
+    # ... download logic
+}
+#+end_src
+
+** Metadata Block
+The metadata block must appear in this exact order with consistent naming:
+*** Bash
+#+begin_example
+STEP="step-name"
+STEP_NUMBER=1
+SCRIPT_VERSION="1.0.0"
+PREV_STEP="previous-step"  # omit line if N/A
+BASE_URL="https://..."      # omit line if N/A
+#+end_example
+
+*** PowerShell
+#+begin_example
+$STEP = "step-name"
+$STEP_NUMBER = 1
+$SCRIPT_VERSION = "1.0.0"
+$PREV_STEP = "previous-step"  # omit line if N/A
+$BASE_URL = "https://..."      # omit line if N/A
+#+end_example
+
+** Naming Conventions
+*** Variables
+| Type                | Bash                 | PowerShell            | Example                          |
+|---------------------+----------------------+-----------------------+----------------------------------|
+| Constants           | SCREAMING_SNAKE_CASE | $SCREAMING_SNAKE_CASE | DEFAULT_TIMEOUT                  |
+| Global variables    | lowercase_snake_case | $script:PascalCase    | verbose, $script:Verbose         |
+| Local variables     | lowercase_snake_case | $camelCase            | iso_file, $isoFile               |
+| Function parameters | lowercase_snake_case | $PascalCase           | checkpoint_file, $CheckpointFile |
+
+*** Functions
+| Type              | Bash                  | PowerShell       |
+|-------------------+-----------------------+------------------|
+| Public functions  | lowercase_snake_case  | Verb-Noun        |
+| Private functions | _lowercase_snake_case | _Verb-Noun       |
+
+**** PowerShell Approved Verbs
+To ensure consistency with PowerShell standards, functions should use approved verbs. You can find the complete, official list in Microsoft's documentation: [[https://learn.microsoft.com/en-us/powershell/scripting/developer/cmdlet/approved-verbs-for-windows-powershell-commands?view=powershell-7.5][Approved Verbs for PowerShell Commands]].
+
+For quick reference, here are the most common verbs grouped by category:
+| Category  | Common Verbs                             |
+|-----------+------------------------------------------|
+| Get/Read  | Get, Read, Find, Search                  |
+| Set/Write | Set, Write, New, Add, Install, Update    |
+| Action    | Invoke, Start, Stop, Restart, Request    |
+| Remove    | Remove, Uninstall, Clear, Reset          |
+| Test      | Test (for boolean checks)                |
+| Convert   | Convert, ConvertTo, ConvertFrom          |
+| Other     | Export, Import, Format, Out, Join, Split |
+** Function Vocabulary
+All scripts must use these canonical function names:
+| Concept             | Bash                     | PowerShell               | Description                         |                              |                 |                       |
+|---------------------+--------------------------+--------------------------+-------------------------------------+------------------------------+-----------------+-----------------------|
+| Exit with error     | error "msg"              | Exit-With Error "msg"    | Log error and exit with code 1      |                              |                 |                       |
+| Log info            | log "msg"                | Write-Log "msg"          | Standard information logging        |                              |                 |                       |
+| Log warning         | log_warning "msg"        | Write-LogWarning "msg"   | Warning that doesn't stop execution |                              |                 |                       |
+| Log error           | log_error "msg"          | Write-LogError "msg"     | Error logging without exit          |                              |                 |                       |
+| Log success         | log_success "msg"        | Write-LogSuccess "msg"   | Success message                     |                              |                 |                       |
+| Log verbose         | log_verbose "msg"        | Write-LogVerbose "msg"   | Only shown with --verbose           |                              |                 |                       |
+| Format bytes        | format_bytes 1024        | Format-Bytes 1024        | Convert bytes to human-readable     |                              |                 |                       |
+| Confirm action      | confirm_action "Remove?" | Confirm-Action "Remove?" | Prompt for y/n confirmation         |                              |                 |                       |
+| Remove safely       | remove_file_safely       | Remove-FileSafely        | Remove with confirmation            | Check file exists[[ -f "$file"]] | Test-Path $file | Test for regular file |
+| Save checkpoint     | checkpoint_save          | Save-Checkpoint          | Write checkpoint JSON               |                              |                 |                       |
+| Load checkpoint     | checkpoint_load          | Read-Checkpoint          | Read and validate checkpoint        |                              |                 |                       |
+| Validate checkpoint | checkpoint_validate      | Test-Checkpoint          | Validate checkpoint structure       |  
+
+** Standard Command-Line Options
+All scripts must support these options with consistent behavior:
+| Long Option | Short | Description                   | Variable           |
+|-------------+-------+-------------------------------+--------------------|
+| --force     | -f    | Skip all confirmation prompts | force_mode=true    |
+| --dry-run   | -n    | Preview mode, no changes made | dry_run=true       |
+| --verbose   | -v    | Enable debug/verbose output   | verbose=true       |
+| --help      | -h    | Show usage information        | Show help and exit |
+
+*** Bash Argument Parsing
+#+begin_example
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -f|--force) force_mode=true ;;
+        -n|--dry-run) dry_run=true ;;
+        -v|--verbose) verbose=true ;;
+        -h|--help) show_help; exit 0 ;;
+        *) error "Unknown option: $1" ;;
+    esac
+    shift
+done
+#+end_example
+
+*** PowerShell Parameter Binding
+#+begin_example 
+param(
+    [switch]$Force,
+    [switch]$DryRun,
+    [switch]$Verbose,
+    [switch]$Help
+)
+#+end_example
+
+** Logging Standards
+*** Log Levels and Colors
+| Level   | Bash Color | PowerShell Color | Use Case              |
+|---------+------------+------------------+-----------------------|
+| INFO    | Default    | Cyan             | Normal operation      |
+| WARNING | Yellow     | Yellow           | Non-fatal issues      |
+| ERROR   | Red        | Red              | Failures              |
+| SUCCESS | Green      | Green            | Successful completion |
+| DEBUG   | Gray       | Gray             | Verbose mode only     |
+
+** Log Format
+[HH:MM:SS] [LEVEL] Message
+
+*** Standard Log Messages
+- Checkpoint operations:
+  - Save: "Checkpoint saved: $checkpoint_file"
+  - Load: "Loaded checkpoint: $checkpoint_file"
+  - Invalid: "Invalid checkpoint file: $checkpoint_file"
+
+- Script completion:
+  - Success: "Step completed successfully" (run scripts)
+  - Success: "Rollback completed" (rollback scripts)
+
+** Summary Output
+All scripts must end with a consistent summary format:
+*** Run Scripts
+#+begin_example
+log_success "Step completed successfully"
+log "Files created: $count"
+log "Total size: $(format_bytes $size)"
+#+end_example
+*** Rollback Scripts
+#+begin_example
+log_success "Rollback completed"
+log "Files removed: $removed_count"
+log "Files skipped: $skipped_count"
+#+end_example
+** Style Rules
+*** Bash-Specific
+1. Spacing
+   - Single space inside ~[[ ]]~: ~[[ -f "$file" ]]~
+   - Single space after redirects: ~> file~, ~2>&1~
+   - No trailing spaces
+
+2. Quoting
+   - Always quote variables: ~"$var"~
+   - Quote command substitutions: ~var="$(command)"~
+   - Use ~$()~ not backticks
+
+3. Conditionals
+   - Use ~[[]]~ for conditionals, not ~[ ]~
+   - Use ~[[ -f ]]~ for files, not ~[[ -e ]]~
+
+4. Local Variables
+   - Declare with ~local~ in functions
+   - Use lowercase_with_underscores
+
+*** PowerShell-Specific
+
+**** Strict Mode
+#+begin_example
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+#+end_example
+   
+**** Parameter Validation
+- Use ~[Parameter()]~ attributes
+- Validate with ~[ValidateSet()]~, ~[ValidateRange()]~, etc.
+
+**** Output
+- Use ~Write-Host~ for user messages
+- Use ~Write-Output~ for pipeline data
+- Avoid ~Write-Verbose~ (use custom ~Write-LogVerbose~)
+
+** Common Library Usage
+*** Bash
+#+begin_example
+# Source the common library
+source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
+#+end_example
+*** PowerShell
+#+begin_example
+# Import the common module
+Import-Module "$PSScriptRoot\lib\Common.psm1" -Force
+#+end_example
+
+** Error Handling
+*** Exit Codes
+0: Success
+1: General error
+2: Missing dependencies
+3: Invalid arguments
+4: Checkpoint validation failed
+
+*** Error Messages
+Always log to stderr
+Include actionable information
+Suggest fixes when possible
+
+** GPG Key Management
+*** Debian Signing Keys (Constants)
+#+begin_example
+DEBIAN_SIGNING_KEYS=(
+    "988021A964E6EA7D"
+    "DA87E80D6294BE9B"
+    "42468F4009EA8AC3"
+)
+#+end_example
+*** Keyservers (Constants)
+KEYSERVERS=(
+    "keyserver.ubuntu.com"
+    "keys.openpgp.org"
+    "pgp.mit.edu"
+)
+
+** File Organization
+project/
+├── lib/
+│   ├── common.sh          # Bash common functions
+│   └── Common.psm1         # PowerShell common module
+├── step/download-host/
+│   ├── index.org
+│   ├── README.org
+│   ├── run.sh
+│   ├── run.ps1
+│   ├── rollback.sh
+│   └── rollback.ps1
+├── step/gpg-verify-host/
+│   ├── index.org
+│   ├── README.org
+│   ├── run.sh
+│   ├── run.ps1
+│   ├── rollback.sh
+│   └── rollback.ps1
+└── STYLE.md
+
+** Testing Checklist
+Before committing any script, verify:
+
+[ ] Follows exact metadata block format
+[ ] All functions use canonical names
+[ ] Supports all standard options
+[ ] Checkpoint schema is correct
+[ ] Log messages follow standards
+[ ] Summary output is consistent
+[ ] No trailing spaces
+[ ] Proper error handling
+[ ] Sources/imports common library
+[ ] Help text is complete
+
+Version History
+1.0.0: Initial style guide based on feedback and existing scripts
+
+** Commit Message Style
+We follow a structured commit message format to maintain a clear and useful git history. Please use this format for all commits. It is based on the template found in [[file:.gitmessage][.gitmessage]].
+
+Format: `<step>/<sub>: <what> – <time>`
+
+- *50-character max subject line*, lowercase, present tense.
+- The body should explain *why* the change was made, not just what.
+- Reference relevant issues or discussions (e.g., `Fixes #123`).
+
+Example:
+#+begin_example
+01-download/iso: add sha512 verification – 25m
+
+- Verifies the downloaded ISO against the SHA512SUMS file.
+- This prevents corrupted downloads from being used in later steps.
+- Exits with an error if the hash mismatches.
+
+Ref: #42
+#+end_example
+
+** Documentation Style (Org Mode)
+- [TODO: Add any specific conventions for Org Mode files, e.g., PROPERTIES drawer usage, heading levels, linking style, etc.]
+
+* Testing
+All new features and bug fixes must be tested. Our CI pipeline automatically runs `shellcheck` and `PSScriptAnalyzer` on all scripts.
+
+Before submitting a pull request, please run all verification and linting scripts locally:
+#+begin_src bash
+# Run the pre-commit checks
+./scripts/preflight.sh
+
+# TODO: Add commands for running any other local tests
+# ./scripts/run-all-verifications.sh
+#+end_src
+
+* License
+By contributing, you agree that your contributions will be licensed under the ISC License that covers the project.

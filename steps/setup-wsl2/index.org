@@ -1,0 +1,48 @@
+:PROPERTIES:
+:ID:       66c715c0-2663-4e11-9f36-75c4be20ff0e
+:archived: f
+:modified: [2025-09-14 Sun]
+:END:
+
+#+TITLE: Install a Debian Environment with WSL2
+#+SUBTITLE: Building Your Workshop on Windows
+#+AUTHOR: Caleb Christensen
+#+DATE: [2025-09-14 Sun]
+#+FILETAGS: :sovereignty:tutorial:wsl:
+#+OPTIONS: toc:nil num:nil
+
+* Why This Matters
+Creating a bootable USB drive for a new operating system is a delicate operation. It requires low-level tools that can write directly to the hardware, bypassing the normal file system. While this is standard on a Linux machine, these tools aren't native to Windows.
+
+To solve this, we will build a self-contained "workshop" inside of Windows itself using the **Windows Subsystem for Linux (WSL2)**. Think of it as constructing a clean, perfectly-equipped Debian environment right on your desktop. This gives us all the power and precision of native Linux commands without ever leaving Windows, setting the stage for us to forge our installation media with confidence.
+
+* Step-by-Step: Installing Your Debian Workshop
+
+** 1. Launch an Administrator Terminal**
+To make system-level changes like installing WSL, we need to act with administrative privileges. The quickest way is to use a simple keyboard shortcut.
+- Press @@html:<kbd>Win + X</kbd>@@ to open the Power User menu, then press @@html:<kbd>A</kbd>@@ to launch PowerShell as an Administrator.
+
+** 2. Run the Installation Command**
+Now we'll give Windows a single, powerful command. This instruction tells Windows to find and install all the necessary components for WSL and then, once the foundation is laid, to download and set up our chosen Debian distribution.
+
+In the Admin PowerShell terminal, execute the following:
+#+begin_src powershell
+wsl --install -d Debian
+#+end_src
+
+Windows will now handle the entire process. Once it's finished, a new terminal window will appear. This is the entrance to your brand-new Debian environment.
+
+** 3. Create Your Linux User Account**
+Your Debian workshop needs its own user account, separate from your Windows login. The system will now prompt you to create it.
+- **Enter new UNIX username:** Type a simple, lowercase username and press Enter.
+- **New password:** Type a password and press Enter.
+
+#+begin_note
+For security, you won't see any characters as you type the password. This is normal. Just type carefully and press Enter. You'll be asked to confirm it.
+#+end_note
+
+Once your password is confirmed, you'll be greeted by the Debian command prompt. Congratulations—your workshop is officially open.
+
+* What's Next?
+Our Debian workshop is built, but it's an isolated room with no way to access the physical tools we need—namely, the USB drive. Our next task is to open a secure channel, allowing our Debian environment to see and interact with the computer's USB ports.
+- → [[../usbipd-setup/index.org][Connect a USB Drive to WSL2 with usbipd-win]]

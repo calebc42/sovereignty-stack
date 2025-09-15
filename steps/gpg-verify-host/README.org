@@ -6,7 +6,7 @@
 :modified: [2025-09-13 Sat 22:22]
 :END:
 
-#+TITLE: Using GNU Privacy Guard to authenticate the ISO
+#+TITLE: Using GNU Privacy Guard to Authenticate the ISO Signature
 #+DESCRIPTION: Verify Debian ISO authenticity using GPG
 #+FILETAGS: :sovereignty:verification:
 
@@ -14,10 +14,10 @@
 Cryptographically verify that the downloaded Debian ISO and checksums are authentic and unmodified using GPG signatures.
 
 * Dependencies
-- Prerequisites: Completed ~debian-download~ step
+- Prerequisites: Completed ~download-host~ step
 - Requires: ~gpg~ (or use ~--no-gpg~ to skip)
-- Input: ~sovereignty-chain.debian-download.json~
-- Output: ~sovereignty-chain.gpg-verify-debian.json~ with ~gpg_verified~ status
+- Input: ~download-host.checkpoint.json~
+- Output: ~gpg-verify-host.checkpoint.json~ with ~gpg_verified~ status
 
 * Quick Run
 ** Linux/macOS
@@ -31,12 +31,12 @@ To skip GPG verification (not recommended):
 #+end_src
 ** Windows
 #+begin_src powershell
-./run.ps1          # verifies with GPG
+./run.ps1
 #+end_src
 
 To skip GPG verification (not recommended):
 #+begin_src powershell
-./run.ps1 -NoGpg   # skip verification
+./run.ps1 -NoGpg
 #+end_src
 
 * What This Does

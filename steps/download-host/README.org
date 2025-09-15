@@ -5,8 +5,8 @@
 :archived: f
 :modified: [2025-09-13 Sat 20:11]
 :END:
-#+TITLE: Download Debian Net-Inst ISO
-#+DESCRIPTION: README for download-debian
+#+TITLE: Download Host OS Installation Media
+#+DESCRIPTION: README for download-host
 #+FILETAGS: :publish:
 
 * Purpose
@@ -36,8 +36,8 @@ If you prefer to run commands individually:
 ** Windows
 #+begin_src powershell
 # Create working directory
-New-Item -Path "$HOME\Desktop\sovereignty" -ItemType Directory -Force
-Set-Location "$HOME\Desktop\sovereignty"
+New-Item -Path "$HOME\Desktop\sovereignty-stack" -ItemType Directory -Force
+Set-Location "$HOME\Desktop\sovereignty-stack"
 
 # Find current ISO filename
 $BaseUrl = "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd"
@@ -88,12 +88,12 @@ Expected output:
 
 * Outputs
 This step produces:
-| File                          | Description      | Size        |
-|-------------------------------+------------------+-------------|
-| debian-[version]-amd64-netinst.iso | Debian installer | 600-700 MB  |
-| SHA512SUMS                    | Checksum file    | ~1 KB       |
-| SHA512SUMS.sign               | GPG signature    | ~1 KB       |
-| download-manifest.json        | Step state file  | ~1 KB       |
+| File                               | Description          | Size       |
+|------------------------------------+----------------------+------------|
+| debian-[version]-amd64-netinst.iso | Debian installer     | 600-700 MB |
+| SHA512SUMS                         | Checksum file        | ~1 KB      |
+| SHA512SUMS.sign                    | GPG signature        | ~1 KB      |
+| download-host.checkpoint.json      | Step checkpoint file | ~1 KB      |
 
 * Rollback
 To remove downloaded files and start over:
@@ -102,5 +102,5 @@ To remove downloaded files and start over:
 #+end_src
 
 * Next Steps
-→ [[file:../gpg-keyring-setup/README.org][gpg-keyring-setup]]: Install GPG and import Debian signing keys
+→ [[file:../gpg-verify-host/README.org][gpg-verify-host]]: Verify ISO authenticity using GPG signatures
 → [[file:../debian-iso-verify/README.org][debian-iso-verify]]: Verify the ISO authenticity

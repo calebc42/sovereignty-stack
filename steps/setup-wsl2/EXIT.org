@@ -1,0 +1,14 @@
+:PROPERTIES:
+:ID:       72d20270-01c1-4705-9d8e-5d79bd0fdfcb
+:type:     
+:tags:
+:archived: f
+:modified: [2025-09-14 Sun 01:05]
+:END:
+
+#+TITLE: Exit
+#+AUTHOR: Caleb Christensen
+#+DESCRIPTION: 
+#+FILETAGS:
+
+

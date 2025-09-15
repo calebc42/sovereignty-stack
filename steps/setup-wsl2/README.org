@@ -1,0 +1,34 @@
+:PROPERTIES:
+:ID:       dc5e06e4-4ec3-4683-851f-b9441f6f128d
+:type:     
+:tags:
+:archived: f
+:modified: [2025-09-14 Sun 01:03]
+:END:
+
+#+TITLE: Install WSL2 Debian Distribution
+#+FILETAGS: :sovereignty:setup:
+
+* Purpose
+Install the official Debian distribution for the Windows Subsystem for Linux (WSL2).
+
+* Dependencies
+- Windows 10/11 with the "Virtual Machine Platform" feature enabled.
+
+* Quick Run (Administrator PowerShell)
+#+begin_src powershell
+wsl --install -d Debian
+#+end_src
+# Note: The command will prompt for UNIX username and password creation upon first launch.
+
+* Verification
+Run the following command in PowerShell. The output should list "Debian" with a status of "Running" or "Stopped".
+#+begin_src powershell
+wsl --list --verbose
+#+end_src
+
+* Outputs
+- A configured Debian instance within WSL2.
+
+* Next Steps
+→ [[../usbipd-setup/README.org][usbipd-setup]]: Grant the WSL2 instance access to physical USB hardware.

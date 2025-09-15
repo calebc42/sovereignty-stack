@@ -1,0 +1,40 @@
+:PROPERTIES:
+:ID:       5c05ebcd-79d2-435e-b333-f44adcbcfbf0
+:type:     
+:tags:
+:archived: f
+:modified: [2025-09-14 Sun 01:07]
+:END:
+
+#+TITLE: Attach USB Device to WSL2
+#+FILETAGS: :sovereignty:setup:usb:
+
+* Purpose
+Install `usbipd-win` and use it to grant a WSL2 instance direct, low-level access to a physical USB block device.
+
+* Dependencies
+- Windows 10/11 with WSL2 and a Debian instance installed.
+- `winget` package manager.
+- A physical USB drive.
+
+* Quick Run (Administrator PowerShell)
+#+begin_src powershell
+# Install tool
+winget install usbipd
+
+# Find USB drive's BUSID
+usbipd list
+
+# Bind and attach (replace <BUSID> with the correct value)
+usbipd bind --busid <BUSID>
+usbipd attach --wsl --busid <BUSID>
+#+end_src
+
+* Verification
+Run `wsl lsblk -d -o NAME,MODEL,TRAN,RM` inside a WSL2 terminal. The output should include an entry for the attached USB drive (e.g., `sdi`).
+
+* Outputs
+- A USB block device (e.g., `/dev/sdi`) becomes available inside the WSL2 Debian instance.
+
+* Next Steps
+→ [[../usb-write/README.org][usb-write]]: Write an ISO file to the attached USB device.

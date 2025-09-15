@@ -1,0 +1,21 @@
+{
+    "name": "Sovereignty Stack Dev Container",
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+
+    "features": {
+        "ghcr.io/devcontainers/features/powershell:1": {
+            "version": "latest"
+        }
+    },
+
+    "postCreateCommand": "sudo apt-get update && sudo apt-get install -y shellcheck jq",
+
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.powershell",
+                "timonwong.shellcheck"
+            ]
+        }
+    }
+}

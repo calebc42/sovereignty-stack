@@ -1,0 +1,32 @@
+:PROPERTIES:
+:ID:       6ded28c5-2efb-4491-8cbc-20f3e41a8198
+:type:     
+:tags:
+:archived: f
+:modified: [2025-09-14 Sun 00:44]
+:END:
+
+#+TITLE: Hiring Packet
+#+AUTHOR: Caleb Christensen
+#+DESCRIPTION: Technical Portfolio Summary
+#+FILETAGS: 
+
+* Repo: [github.com/calebc42/sovereignty-stack](https://github.com/calebc42/sovereignty-stack)  
+**Green CI:** ✅ 10-day streak, cross-platform reproducibility proven  
+**Core Proof:** Turned a consumer laptop into a tamper-evident hypervisor host via 100 % scripted, checksum-verified steps.
+
+* What I Built
+- **Reproducible Pipeline:** 9 atomic steps, each producing a machine-readable JSON baton; identical output on Windows & Linux CI.
+- **Cross-Platform Automation:** 200-line PowerShell + bash scripts, lint-clean, resume-capable downloads, GPG verification, rollback hooks.
+- **State Tracking:** JSON-schema baton chain → auditable from bare metal to running Xen VM.
+- **Public Learning Log:** Daily commits, issues, discussions; external contributors already filing PRs.
+
+* Metrics
+- **ISO Hashes:** 783 MB Debian image, SHA-512 verified, identical on both OS families.
+- **CI Matrix:** 18 jobs per push (lint + exec + cross-check), failure &lt; 1 min detect.
+- **Documentation:** 10 k words, 100 % commands copy-pasteable, dynamic input builders.
+
+* Skills Demonstrated
+Automation | JSON Schema | CI/CD | Technical Writing | Cross-Platform Scripting | Cryptographic Verification
+
+Use this repo as proof I can **automate boring work**, **document like a forensic auditor**, and **ship on a schedule**—exactly what RevOps teams need.

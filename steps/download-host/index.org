@@ -1,17 +1,17 @@
 :PROPERTIES:
 :ID:       708edf7d-a8dd-4b89-a9eb-9d266d5bc49e
-:ROAM_REFS: /resources/sovereignty-stack/download-debian
+:ROAM_REFS: /resources/sovereignty-stack/download-host
 :type:     
 :tags:
 :archived: f
 :modified: [2025-09-13 Sat 20:09]
 :END:
 
-#+TITLE: Download Debian Installation Media
+#+TITLE: Download Host OS Installation Media
 #+SUBTITLE: Obtaining Files to Create a Bootable Installer
 #+AUTHOR: Caleb Christensen
 #+DATE: [2025-01-14 Tue]
-#+FILETAGS: :sovereignty:tutorial:publish:
+#+FILETAGS: :publish:tutorial:
 #+OPTIONS: toc:2 num:nil
 
 * What This Step Accomplishes
@@ -123,7 +123,7 @@ Invoke-WebRequest -Uri "${sig}" -OutFile "SHA512SUMS.sign"`;
     document.getElementById('command-output').textContent = command;
     
     // Save URLs and filename for verification step
-    localStorage.setItem('sovereignty-debian-urls', JSON.stringify({
+    localStorage.setItem('host-urls', JSON.stringify({
         iso: iso,
         checksum: checksum,
         sig: sig,
@@ -135,14 +135,14 @@ function markStepComplete(stepName) {
     const progress = JSON.parse(localStorage.getItem('sovereignty-progress') || '{}');
     
     // Retrieve the saved URLs data
-    const urlData = JSON.parse(localStorage.getItem('sovereignty-debian-urls') || '{}');
+    const urlData = JSON.parse(localStorage.getItem('host-urls') || '{}');
     const isoFile = urlData.filename || 'debian-[version]-amd64-netinst.iso';
     
     progress[stepName] = {
         completed: true,
         timestamp: new Date().toISOString(),
         files: [isoFile, 'SHA512SUMS', 'SHA512SUMS.sign'],
-        manifest: 'download-manifest.json'
+        manifest: 'download-host.checkpoint.json'
     };
     
     localStorage.setItem('sovereignty-progress', JSON.stringify(progress));
@@ -179,8 +179,8 @@ $IsoFile = (Get-ChildItem -Filter "debian-*.iso").Name
 $IsoHash = (Get-FileHash -Algorithm SHA512 $IsoFile).Hash
 
 # Create documentation
-$manifest = @{
-    step = "download-debian"
+$checkpoint = @{
+    step = "download-host"
     timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
     files = @{
         iso = $IsoFile
@@ -190,17 +190,17 @@ $manifest = @{
     }
 }
 
-# Save manifest
-$manifest | ConvertTo-Json -Depth 3 | Out-File "download-manifest.json" -Encoding UTF8
-Write-Host "Download documented in download-manifest.json" -ForegroundColor Green
+# Save checkpoint
+$checkpoint | ConvertTo-Json -Depth 3 | Out-File "download-host.checkpoint.json" -Encoding UTF8
+Write-Host "Download documented in download-host.checkpoint.json" -ForegroundColor Green
 #+end_src
 
-This manifest file records what was downloaded and when, creating an audit trail for the installation process.
+This checkpoint file records what was downloaded and when, creating an audit trail for the installation process.
 
 * Verification
 At this stage, you have downloaded files but have not verified their authenticity. The files could be corrupted or tampered with. Verification occurs in the next step using GPG.
 
-The manifest file created above contains:
+The checkpoint file created above contains:
 - Timestamp of download
 - Exact filename of the ISO
 - SHA512 hash of the downloaded ISO
@@ -231,7 +231,7 @@ The downloaded files remain unverified until GPG verification is complete. Do no
 
 #+begin_export html
 <div class="step-completion">
-  <button onclick="markStepComplete('download-debian')">Mark Step Complete</button>
+  <button onclick="markStepComplete('download-host')">Mark Step Complete</button>
 </div>
 
 <script>
@@ -239,14 +239,14 @@ function markStepComplete(stepName) {
     const progress = JSON.parse(localStorage.getItem('sovereignty-progress') || '{}');
     
     // Retrieve from the correct localStorage key
-    const urlData = JSON.parse(localStorage.getItem('sovereignty-debian-urls') || '{}');
+    const urlData = JSON.parse(localStorage.getItem('host-urls') || '{}');
     const isoFile = urlData.filename || 'debian-[version]-amd64-netinst.iso';
     
     progress[stepName] = {
         completed: true,
         timestamp: new Date().toISOString(),
         files: [isoFile, 'SHA512SUMS', 'SHA512SUMS.sign'],
-        manifest: 'download-manifest.json'
+        manifest: 'download-host.state.json'
     };
     
     localStorage.setItem('sovereignty-progress', JSON.stringify(progress));

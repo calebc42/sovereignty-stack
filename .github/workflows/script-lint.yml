@@ -1,0 +1,55 @@
+name: Lint Scripts
+
+on: [push, pull_request]
+
+jobs:
+  # Job for linting all Bash scripts
+  lint-bash:
+    name: Lint Bash Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Use a dedicated action for shellcheck. It's faster and more reliable
+      # than installing it with apt-get on every run.
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@2.0.0
+        with:
+          # Scans all .sh files in the repository
+          scandir: './'
+
+  # New job for linting all PowerShell scripts
+  lint-powershell:
+    name: Lint PowerShell Scripts
+    runs-on: windows-latest # Use a Windows runner for PowerShell
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          # Find all PowerShell scripts and lint them
+          $scripts = Get-ChildItem -Recurse -Filter *.ps1
+          Invoke-ScriptAnalyzer -Path $scripts -Recurse -Outvariable results
+          if ($results) {
+            Write-Error "PSScriptAnalyzer found issues."
+            exit 1
+          } else {
+            Write-Host "PSScriptAnalyzer found no issues."
+          }
+
+  # New job to validate YAML file syntax
+  lint-yaml:
+    name: Lint YAML Files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Use a dedicated action to check YAML syntax
+      - name: Lint YAML files
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          file_or_dir: .
