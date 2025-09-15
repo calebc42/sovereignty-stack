@@ -13,7 +13,7 @@
 * What This Is
 A systematic approach to establishing user control over vendor-locked hardware through hypervisor isolation. Each step is documented, scripted, and verified.
 
-[[https://github.com/calebc42/sovereignty-stack/actions/workflows/ci.yml][file:https://github.com/calebc42/sovereignty-stack/actions/workflows/ci.yml/badge.svg]]
+[[https://github.com/calebc42/sovereignty-stack/actions/workflows/ci.yml][file:https://github.com/calebc42/sovereignty-stack/actions/workflows/script-lint.yml/badge.svg]]
 [[https://opensource.org/licenses/ISC][file:https://img.shields.io/badge/License-ISC-blue.svg]]
 [[https://www.repostatus.org/#wip][file:https://www.repostatus.org/badges/latest/wip.svg]]
 [[https://github.com/calebc42/sovereignty-stack/issues][file:https://img.shields.io/github/issues/calebc42/sovereignty-stack]]
