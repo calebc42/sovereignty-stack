@@ -13,8 +13,6 @@
 *_flymake.*
 # projectile cache
 .projectile
-# directory variables
-.dir-locals.el
 # session
 session.*
 # recentf

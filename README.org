@@ -81,8 +81,8 @@ cd steps/01-debian-download
 
 Both paths produce identical results, tracked in =sovereignty-chain.*.json= files.
 
-* State Tracking: The Baton System
-Each step produces a JSON "baton" file documenting:
+* State Tracking:
+Each step produces a JSON checkpoint file documenting:
 - What was accomplished
 - File hashes for verification  
 - Environment details
@@ -91,7 +91,7 @@ Each step produces a JSON "baton" file documenting:
 Example:
 #+begin_src json
 {
-  "step": "01-debian-download",
+  "step": "download-host",
   "timestamp": "2025-01-14T10:00:00Z",
   "artifacts": {
     "debian-13.1.0-amd64-netinst.iso": {
@@ -113,8 +113,9 @@ This creates an auditable chain of evidence from bare metal to working system.
 - [X] P5: Device Isolation
 
 ** Completed Steps
-- [X] [[file:steps/download-debian/][Download Debian]] - Fetch and verify installer
-- [X] [[file:steps/iommu-isolation/][IOMMU Verification and Device Isolation]] - Confirm device isolation
+- [X] [[file:steps/download-host/][Download Host OS Installation Media]] - Fetch and verify installer
+- [X] [[file:steps/gpg-verify-host/index.org][Verify Host ISO Signature with GPG]] - Authenticate the ISO signature
+- [ ] [[file:steps/iommu-isolation/][IOMMU Verification and Device Isolation]] - Confirm device isolation
 
 ** In Progress
 - [ ] [[file:docs/drafts/02-uefi.org][02 - UEFI Analysis]] - Examine firmware behavior
